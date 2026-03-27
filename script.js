@@ -99,37 +99,29 @@ let userBalance = 0;
 let userData = { history: [], totalSpent: 0, totalPurchases: 0 };
 
 // ============================================
-// 🔄 ЗАГРУЗКА БАЛАНСА ПРИ ОТКРЫТИИ MINI APP
+// 🔄 ЗАГРУЗКА БАЛАНСА
 // ============================================
-async function loadUserBalance() {
-    try {
-        tg.sendData(JSON.stringify({
-            type: 'get_user_balance',
-            timestamp: new Date().toISOString()
-        }));
-        console.log('Balance request sent');
-    } catch (error) {
-        console.error('Error loading balance:', error);
-    }
+function loadUserBalance() {
+    console.log('📡 Requesting balance...');
+    tg.sendData(JSON.stringify({
+        type: 'get_user_balance',
+        timestamp: new Date().toISOString()
+    }));
 }
 
 // ============================================
 // 📨 СЛУШАЕМ ОТВЕТЫ ОТ БОТА
 // ============================================
 window.addEventListener('message', (event) => {
+    console.log('📨 Received message:', event.data);
+    
     if (event.data && typeof event.data === 'string') {
         // Обновление баланса
         if (event.data.startsWith('USER_BALANCE:')) {
             const balance = parseInt(event.data.replace('USER_BALANCE:', ''));
             userBalance = balance;
             updateBalance();
-            console.log('✅ Balance updated:', balance);
-        }
-        
-        // Заявки пользователя
-        if (event.data.startsWith('USER_REQUESTS:')) {
-            const requestsData = JSON.parse(event.data.replace('USER_REQUESTS:', ''));
-            displayRequests(requestsData);
+            console.log('✅ Balance updated to:', balance);
         }
         
         // Реквизиты
@@ -138,6 +130,7 @@ window.addEventListener('message', (event) => {
             const detailsEl = document.getElementById('paymentDetailsDisplay');
             if (detailsEl) {
                 detailsEl.textContent = details;
+                console.log('✅ Payment details updated');
             }
         }
     }
@@ -239,12 +232,13 @@ function updateTexts() {
 }
 
 // ============================================
-// 💰 ОБНОВЛЕНИЕ ОТОБРАЖЕНИЯ БАЛАНСА
+// 💰 ОБНОВЛЕНИЕ БАЛАНСА
 // ============================================
 function updateBalance() {
     const balanceEl = document.getElementById('balance');
     if (balanceEl) {
         balanceEl.textContent = `${userBalance.toLocaleString()} so'm`;
+        console.log('💰 Balance displayed:', userBalance);
     }
     
     const totalSpentEl = document.getElementById('totalSpentValue');
@@ -589,10 +583,10 @@ function switchTab(tab) {
     const btnEl = document.querySelector(`[data-tab="${tab}"]`);
     if (btnEl) btnEl.classList.add('active');
     
-    // Загружаем заявки при открытии вкладки
-    if (tab === 'requests') {
-        loadUserRequests();
-    }
+    // УБРАЛ ЗАЯВКИ - больше не загружаем
+    // if (tab === 'requests') {
+    //     loadUserRequests();
+    // }
     
     navTo(tab);
 }
@@ -603,7 +597,8 @@ function navTo(page) {
     if (activeItem) activeItem.classList.add('active');
     
     if (page === 'menu') switchTab('stars');
-    else if (['gift', 'rating', 'profile', 'requests'].includes(page)) switchTab(page);
+    else if (['gift', 'rating', 'profile'].includes(page)) switchTab(page);
+    // УБРАЛ ЗАЯВКИ - больше нет вкладки requests
 }
 
 function addBalance() {
@@ -632,79 +627,20 @@ function buyPremium() {
 }
 
 // ============================================
-// 📋 ЗАГРУЗКА ЗАЯВОК ПОЛЬЗОВАТЕЛЯ
+// 🔄 КНОПКА ОБНОВЛЕНИЯ БАЛАНСА
 // ============================================
-async function loadUserRequests() {
-    const requestsList = document.getElementById('requestsList');
+function refreshBalance() {
+    console.log('🔄 Manual balance refresh...');
+    loadUserBalance();
     
-    try {
-        tg.sendData(JSON.stringify({
-            type: 'get_user_requests',
-            timestamp: new Date().toISOString()
-        }));
-    } catch (error) {
-        console.error('Error loading requests:', error);
-        if (requestsList) {
-            requestsList.innerHTML = '<div style="text-align:center;padding:40px;color:#F44336">Ошибка загрузки</div>';
-        }
+    // Анимация кнопки
+    const btn = document.querySelector('.refresh-btn');
+    if (btn) {
+        btn.style.transform = 'rotate(360deg)';
+        setTimeout(() => {
+            btn.style.transform = 'rotate(0deg)';
+        }, 500);
     }
-}
-
-function displayRequests(requests) {
-    const requestsList = document.getElementById('requestsList');
-    
-    if (!requests || requests.length === 0) {
-        requestsList.innerHTML = `
-            <div style="text-align: center; padding: 40px; color: #8b92a8;">
-                <div style="font-size: 48px; margin-bottom: 16px;">📭</div>
-                <div>Нет заявок</div>
-            </div>
-        `;
-        return;
-    }
-    
-    requests.reverse();
-    
-    let html = '';
-    requests.forEach(req => {
-        const statusClass = req.status;
-        const statusText = {
-            'pending': '⏳ Ожидает',
-            'approved': '✅ Одобрена',
-            'rejected': '❌ Отклонена'
-        }[req.status] || req.status;
-        
-        const date = new Date(req.created_at).toLocaleString('ru-RU');
-        
-        html += `
-            <div class="request-card">
-                <div class="request-header">
-                    <span class="request-id">#${req.id}</span>
-                    <span class="request-amount">${req.amount.toLocaleString()} so'm</span>
-                </div>
-                <div class="request-status ${statusClass}">${statusText}</div>
-                <div class="request-proof">
-                    📄 Чек: ${req.payment_proof || 'Не загружен'}
-                </div>
-                <div class="request-date">🕐 ${date}</div>
-                ${req.status === 'pending' ? `
-                    <button class="upload-proof-btn" onclick="uploadProof(${req.id})">
-                        📸 Загрузить чек
-                    </button>
-                ` : ''}
-            </div>
-        `;
-    });
-    
-    requestsList.innerHTML = html;
-}
-
-function uploadProof(requestId) {
-    tg.showAlert(
-        "📸 Загрузка чека\n\n" +
-        "Отправьте фото/скриншот чека боту в личные сообщения.\n\n" +
-        "Чек будет автоматически привязан к заявке #" + requestId
-    );
 }
 
 tg.ready();
