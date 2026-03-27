@@ -5,17 +5,11 @@ tg.setBackgroundColor('#0f1419');
 
 const translations = {
     ru: {
-        // ... существующие переводы
-        cancel: 'Отмена',
-        sent: 'Отправил',
-        customLabel: 'Или своя сумма',
-        customPlaceholder: '150',
-        customBtn: 'OK'
         starsTitle: 'Telegram Stars',
         recipientLabel: 'Получатель',
         usernamePlaceholder: 'Username',
         selfBtn: 'Себе',
-        amountLabel: 'Количество',
+        amountLabel: 'Количество звёзд',
         customLabel: 'Или своя сумма',
         customPlaceholder: '150',
         customBtn: 'OK',
@@ -33,25 +27,21 @@ const translations = {
         topupProof: 'Чек',
         topupSubmit: 'Отправить',
         topupSuccess: 'Заявка отправлена',
+        cancel: 'Отмена',
+        sent: 'Отправил',
         lang: 'RU'
     },
     uz: {
-        // ... существующие переводы
-        cancel: 'Bekor qilish',
-        sent: "Yubordim",
-        customLabel: "Yoki o'z miqdoringiz",
-        customPlaceholder: '150',
-        customBtn: 'OK'
         starsTitle: 'Telegram Stars',
         recipientLabel: 'Qabul qiluvchi',
         usernamePlaceholder: 'Username',
         selfBtn: "O'zim",
-        amountLabel: 'Miqdori',
-        customLabel: 'Yoki o\'z miqdoringiz',
+        amountLabel: 'Stars miqdori',
+        customLabel: "Yoki o'z miqdoringiz",
         customPlaceholder: '150',
         customBtn: 'OK',
         buyBtn: 'Sotib olish',
-        giftTitle: 'Sovg\'alar',
+        giftTitle: "Sovg'alar",
         ratingTitle: 'Top',
         profileTitle: 'Profil',
         totalSpent: 'Jami',
@@ -64,6 +54,8 @@ const translations = {
         topupProof: 'Chek',
         topupSubmit: "Yuborish",
         topupSuccess: "Zayavka yuborildi",
+        cancel: 'Bekor qilish',
+        sent: "Yubordim",
         lang: 'UZ'
     }
 };
@@ -94,10 +86,16 @@ document.addEventListener('DOMContentLoaded', () => {
     const savedLang = localStorage.getItem('language');
     if (savedLang) {
         currentLang = savedLang;
-        document.getElementById('languageModal').style.display = 'none';
+        const modal = document.getElementById('languageModal');
+        if (modal) {
+            modal.style.display = 'none';
+        }
         initApp();
     } else {
-        document.getElementById('languageModal').style.display = 'flex';
+        const modal = document.getElementById('languageModal');
+        if (modal) {
+            modal.style.display = 'flex';
+        }
     }
     
     loadData();
@@ -106,14 +104,24 @@ document.addEventListener('DOMContentLoaded', () => {
 function selectLanguage(lang) {
     currentLang = lang;
     localStorage.setItem('language', lang);
-    document.getElementById('languageModal').style.display = 'none';
+    
+    const modal = document.getElementById('languageModal');
+    if (modal) {
+        modal.style.display = 'none';
+    }
+    
     initApp();
 }
 
 function toggleLanguage() {
     currentLang = currentLang === 'uz' ? 'ru' : 'uz';
     localStorage.setItem('language', currentLang);
-    document.getElementById('currentLangText').textContent = translations[currentLang].lang;
+    
+    const btn = document.getElementById('currentLangText');
+    if (btn) {
+        btn.textContent = translations[currentLang].lang;
+    }
+    
     initApp();
 }
 
@@ -127,36 +135,40 @@ function initApp() {
     
     tg.MainButton.setText(translations[currentLang].buyBtn);
     tg.MainButton.onClick(() => buyStars());
+    tg.MainButton.show();
 }
 
 function updateTexts() {
     const t = translations[currentLang];
     
-    document.getElementById('starsTitle').textContent = t.starsTitle;
-    document.getElementById('recipientLabel').textContent = t.recipientLabel;
-    document.getElementById('username').placeholder = t.usernamePlaceholder;
-    document.getElementById('selfBtn').textContent = t.selfBtn;
-    document.getElementById('amountLabel').textContent = t.amountLabel;
-    document.getElementById('giftTitle').textContent = t.giftTitle;
-    document.getElementById('ratingTitle').textContent = t.ratingTitle;
-    document.getElementById('profileTitle').textContent = t.profileTitle;
+    const elements = {
+        'starsTitle': t.starsTitle,
+        'recipientLabel': t.recipientLabel,
+        'amountLabel': t.amountLabel,
+        'giftTitle': t.giftTitle,
+        'ratingTitle': t.ratingTitle,
+        'profileTitle': t.profileTitle
+    };
     
-    // Обновляем label для custom amount
+    for (const [id, text] of Object.entries(elements)) {
+        const el = document.getElementById(id);
+        if (el) el.textContent = text;
+    }
+    
+    const usernameInput = document.getElementById('username');
+    if (usernameInput) usernameInput.placeholder = t.usernamePlaceholder;
+    
+    const selfBtn = document.getElementById('selfBtn');
+    if (selfBtn) selfBtn.textContent = t.selfBtn;
+    
     const customLabel = document.querySelector('.form-group .form-label:last-of-type');
-    if (customLabel) {
-        customLabel.textContent = t.customLabel;
-    }
+    if (customLabel) customLabel.textContent = t.customLabel;
     
-    // Обновляем placeholder и кнопку
     const customInput = document.getElementById('customStars');
-    if (customInput) {
-        customInput.placeholder = t.customPlaceholder;
-    }
+    if (customInput) customInput.placeholder = t.customPlaceholder;
     
     const customBtn = document.querySelector('.custom-btn');
-    if (customBtn) {
-        customBtn.textContent = t.customBtn;
-    }
+    if (customBtn) customBtn.textContent = t.customBtn;
     
     tg.MainButton.setText(t.buyBtn);
 }
@@ -249,21 +261,59 @@ function buyStars() {
 function showTopupModal(amount) {
     const t = translations[currentLang];
     
+    const modal = document.createElement('div');
+    modal.className = 'modal';
+    modal.style.display = 'flex';
+    
+    modal.innerHTML = `
+        <div class="modal-content" style="max-width: 90%; width: 400px;">
+            <h2 style="margin-bottom: 20px;">${t.topupTitle}</h2>
+            <div style="background: rgba(30, 39, 54, 0.8); padding: 20px; border-radius: 12px; margin-bottom: 20px;">
+                <p style="margin-bottom: 10px; color: #8b92a8;">${t.topupAmount}:</p>
+                <p style="font-size: 24px; font-weight: 700; color: #5b9bd5; margin-bottom: 20px;">
+                    ${(amount || 10000).toLocaleString()} so'm
+                </p>
+                <p style="margin-bottom: 10px; color: #8b92a8;">Реквизиты для оплаты:</p>
+                <div id="paymentDetails" style="background: #0f1419; padding: 15px; border-radius: 8px; font-family: monospace; white-space: pre-wrap; margin-bottom: 15px;">
+                    Загрузка...
+                </div>
+            </div>
+            <div style="display: flex; gap: 10px;">
+                <button class="lang-btn" onclick="this.closest('.modal').remove()" style="background: #2d3a4f; flex: 1;">
+                    ${t.cancel}
+                </button>
+                <button class="lang-btn" onclick="submitTopup(${amount || 10000})" style="flex: 1;">
+                    ${t.sent}
+                </button>
+            </div>
+        </div>
+    `;
+    
+    document.body.appendChild(modal);
+}
+
+function submitTopup(amount) {
+    const t = translations[currentLang];
+    
     tg.showPopup({
         title: t.topupTitle,
-        message: `${t.topupAmount}: ${amount || 10000} so'm\n\n${t.topupProof} (cheK raqami)`,
+        message: "Отправьте скриншот/чек оплаты\n\nПосле подтверждения админом, баланс пополнится.",
         buttons: [
-            { id: 'submit', type: 'ok', text: t.topupSubmit },
+            { id: 'confirm', type: 'ok', text: t.sent },
             { id: 'cancel', type: 'cancel' }
         ]
-    }, (btn, proof) => {
-        if (btn === 'submit') {
+    }, (buttonId) => {
+        if (buttonId === 'confirm') {
             tg.sendData(JSON.stringify({
-                type: 'topup',
-                amount: amount || 10000,
-                proof: proof || 'Yo\'q',
+                type: 'topup_request',
+                amount: amount,
+                proof: 'Ожидает подтверждения',
                 timestamp: new Date().toISOString()
             }));
+            
+            const modal = document.querySelector('.modal');
+            if (modal) modal.remove();
+            
             tg.showAlert(t.topupSuccess);
         }
     });
@@ -271,10 +321,7 @@ function showTopupModal(amount) {
 
 function loadGifts() {
     const grid = document.getElementById('giftsGrid');
-    if (!grid) {
-        console.error('Gifts grid not found');
-        return;
-    }
+    if (!grid) return;
     
     grid.innerHTML = '';
     
@@ -290,8 +337,6 @@ function loadGifts() {
         card.onclick = () => buyGift(gift);
         grid.appendChild(card);
     });
-    
-    console.log('Gifts loaded:', gifts.length);
 }
 
 function buyGift(gift) {
@@ -404,89 +449,9 @@ function navTo(page) {
     else if (['gift', 'rating', 'profile'].includes(page)) switchTab(page);
 }
 
-function showTopupModal(amount) {
-    const t = translations[currentLang];
-    
-    // Создаем модальное окно с реквизитами
-    const modal = document.createElement('div');
-    modal.className = 'modal';
-    modal.style.display = 'flex';
-    
-    modal.innerHTML = `
-        <div class="modal-content" style="max-width: 90%; width: 400px;">
-            <h2 style="margin-bottom: 20px;">${t.topupTitle}</h2>
-            <div style="background: rgba(30, 39, 54, 0.8); padding: 20px; border-radius: 12px; margin-bottom: 20px;">
-                <p style="margin-bottom: 10px; color: #8b92a8;">${t.topupAmount}:</p>
-                <p style="font-size: 24px; font-weight: 700; color: #5b9bd5; margin-bottom: 20px;">
-                    ${(amount || 10000).toLocaleString()} so'm
-                </p>
-                <p style="margin-bottom: 10px; color: #8b92a8;">Реквизиты для оплаты:</p>
-                <div id="paymentDetails" style="background: #0f1419; padding: 15px; border-radius: 8px; font-family: monospace; white-space: pre-wrap; margin-bottom: 15px;">
-                    Загрузка...
-                </div>
-            </div>
-            <div style="display: flex; gap: 10px;">
-                <button class="lang-btn" onclick="this.closest('.modal').remove()" style="background: #2d3a4f; flex: 1;">
-                    ${t.cancel || 'Отмена'}
-                </button>
-                <button class="lang-btn" onclick="submitTopup(${amount || 10000})" style="flex: 1;">
-                    ${t.sent || 'Отправил'}
-                </button>
-            </div>
-        </div>
-    `;
-    
-    document.body.appendChild(modal);
-    
-    // Загружаем реквизиты от бота
-    fetchPaymentDetails();
+function addBalance() {
+    showTopupModal();
 }
-
-function fetchPaymentDetails() {
-    // Запрашиваем реквизиты у бота
-    tg.sendData(JSON.stringify({
-        type: 'get_payment_details',
-        timestamp: new Date().toISOString()
-    }));
-}
-
-function submitTopup(amount) {
-    const t = translations[currentLang];
-    
-    tg.showPopup({
-        title: t.topupTitle,
-        message: "Отправьте скриншот/чек оплаты\n\nПосле подтверждения админом, баланс пополнится.",
-        buttons: [
-            { id: 'confirm', type: 'ok', text: t.sent || 'Отправил' },
-            { id: 'cancel', type: 'cancel' }
-        ]
-    }, (buttonId) => {
-        if (buttonId === 'confirm') {
-            // Отправляем заявку админу
-            tg.sendData(JSON.stringify({
-                type: 'topup_request',
-                amount: amount,
-                proof: 'Ожидает подтверждения',
-                timestamp: new Date().toISOString()
-            }));
-            
-            // Закрываем модалку
-            document.querySelector('.modal').remove();
-            
-            tg.showAlert(t.topupSuccess || 'Заявка отправлена админу!');
-        }
-    });
-}
-
-// Получаем реквизиты от бота
-window.addEventListener('message', (event) => {
-    if (event.data && event.data.type === 'payment_details') {
-        const detailsEl = document.getElementById('paymentDetails');
-        if (detailsEl) {
-            detailsEl.textContent = event.data.details;
-        }
-    }
-});
 
 function closeApp() {
     tg.close();
