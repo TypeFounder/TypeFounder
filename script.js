@@ -26,11 +26,7 @@ const translations = {
         topupAmount: 'Сумма',
         cancel: 'Отмена',
         sent: 'Отправил',
-        lang: 'RU',
-        menu: 'Меню',
-        gift: 'Подарки',
-        rating: 'Рейтинг',
-        profile: 'Профиль'
+        lang: 'RU'
     },
     uz: {
         starsTitle: 'Telegram Stars',
@@ -54,11 +50,7 @@ const translations = {
         topupAmount: 'Summa',
         cancel: 'Bekor qilish',
         sent: "Yubordim",
-        lang: 'UZ',
-        menu: 'Menyu',
-        gift: 'Gift',
-        rating: 'Reyting',
-        profile: 'Profil'
+        lang: 'UZ'
     }
 };
 
@@ -84,47 +76,37 @@ let selectedStars = 50;
 let userBalance = 0;
 let userData = { history: [], totalSpent: 0, totalPurchases: 0 };
 
-// ============================================
-// 💰 ЗАГРУЗКА БАЛАНСА ОТ БОТА
-// ============================================
+// Загрузка баланса
 function loadUserBalance() {
-    console.log('📡 Запрос баланса...');
+    console.log('📡 Requesting balance...');
     tg.sendData(JSON.stringify({
         type: 'get_user_balance',
         timestamp: new Date().toISOString()
     }));
 }
 
-// ============================================
-// 📨 СЛУШАЕМ ОТВЕТЫ ОТ БОТА
-// ============================================
+// Слушаем ответы от бота
 window.addEventListener('message', function(event) {
-    console.log('📨 Получено:', event.data);
+    console.log('📨 Received:', event.data);
     
     if (event.data && typeof event.data === 'string') {
-        // Обновление баланса
         if (event.data.startsWith('USER_BALANCE:')) {
             const balance = parseInt(event.data.replace('USER_BALANCE:', ''));
             userBalance = balance;
             updateBalance();
-            console.log('✅ Баланс обновлён:', balance);
+            console.log('✅ Balance updated to:', balance);
         }
         
-        // Реквизиты
         if (event.data.startsWith('PAYMENT_DETAILS:')) {
             const details = event.data.replace('PAYMENT_DETAILS:', '');
             const detailsEl = document.getElementById('paymentDetailsDisplay');
             if (detailsEl) {
                 detailsEl.textContent = details;
-                console.log('✅ Реквизиты обновлены');
             }
         }
     }
 });
 
-// ============================================
-// 🎯 ИНИЦИАЛИЗАЦИЯ
-// ============================================
 document.addEventListener('DOMContentLoaded', function() {
     const savedLang = localStorage.getItem('language');
     if (savedLang) {
@@ -136,9 +118,8 @@ document.addEventListener('DOMContentLoaded', function() {
         const modal = document.getElementById('languageModal');
         if (modal) modal.style.display = 'flex';
     }
-    
     loadData();
-    loadUserBalance(); // Загружаем баланс при старте
+    loadUserBalance();
 });
 
 function selectLanguage(lang) {
@@ -171,7 +152,6 @@ function initApp() {
 
 function updateTexts() {
     const t = translations[currentLang];
-    
     const elements = {
         'starsTitle': t.starsTitle,
         'recipientLabel': t.recipientLabel,
@@ -180,51 +160,25 @@ function updateTexts() {
         'ratingTitle': t.ratingTitle,
         'profileTitle': t.profileTitle
     };
-    
     for (const [id, text] of Object.entries(elements)) {
         const el = document.getElementById(id);
         if (el) el.textContent = text;
     }
-    
     const usernameInput = document.getElementById('username');
     if (usernameInput) usernameInput.placeholder = t.usernamePlaceholder;
-    
     const selfBtn = document.getElementById('selfBtn');
     if (selfBtn) selfBtn.textContent = t.selfBtn;
-    
     const customInput = document.getElementById('customStars');
     if (customInput) customInput.placeholder = t.customPlaceholder;
-    
     const customBtn = document.querySelector('.custom-btn');
     if (customBtn) customBtn.textContent = t.customBtn;
-    
     tg.MainButton.setText(t.buyBtn);
 }
 
-// ============================================
-// 💰 ОБНОВЛЕНИЕ ОТОБРАЖЕНИЯ БАЛАНСА
-// ============================================
 function updateBalance() {
     const balanceEl = document.getElementById('balance');
     if (balanceEl) {
         balanceEl.textContent = userBalance.toLocaleString() + " so'm";
-        console.log('💰 Баланс на экране:', userBalance);
-    }
-}
-
-// ============================================
-// 🔄 КНОПКА ОБНОВЛЕНИЯ БАЛАНСА
-// ============================================
-function refreshBalance() {
-    console.log('🔄 Ручное обновление баланса...');
-    loadUserBalance();
-    
-    const btn = document.querySelector('.refresh-btn');
-    if (btn) {
-        btn.style.transform = 'rotate(360deg)';
-        setTimeout(function() {
-            btn.style.transform = 'rotate(0deg)';
-        }, 500);
     }
 }
 
@@ -485,6 +439,15 @@ function buyPremium() {
         timestamp: new Date().toISOString()
     }));
     tg.showAlert("✅ Telegram Premium активирован!\n\n💰 " + premiumPrice.toLocaleString() + " so'm");
+}
+
+function refreshBalance() {
+    loadUserBalance();
+    const btn = document.querySelector('.refresh-btn');
+    if (btn) {
+        btn.style.transform = 'rotate(360deg)';
+        setTimeout(function() { btn.style.transform = 'rotate(0deg)'; }, 500);
+    }
 }
 
 tg.ready();
