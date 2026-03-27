@@ -29,6 +29,7 @@ async def cmd_start(message: Message):
         web_app=WebAppInfo(url=WEBAPP_URL)
     )
     
+    # Проверяем, является ли пользователь админом
     if message.from_user.id == ADMIN_ID:
         builder.button(text="🔧 Админ панель", callback_data="admin_panel")
     

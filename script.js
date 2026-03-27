@@ -119,6 +119,8 @@ function initApp() {
 
 function updateTexts() {
     const t = translations[currentLang];
+    
+    // Обновляем все текстовые элементы
     document.getElementById('starsTitle').textContent = t.starsTitle;
     document.getElementById('recipientLabel').textContent = t.recipientLabel;
     document.getElementById('username').placeholder = t.usernamePlaceholder;
@@ -127,9 +129,9 @@ function updateTexts() {
     document.getElementById('giftTitle').textContent = t.giftTitle;
     document.getElementById('ratingTitle').textContent = t.ratingTitle;
     document.getElementById('profileTitle').textContent = t.profileTitle;
-    document.querySelector('.custom-amount-label').textContent = t.customLabel;
-    document.getElementById('customStars').placeholder = t.customPlaceholder;
-    document.querySelector('.custom-btn').textContent = t.customBtn;
+    
+    // Обновляем кнопку покупки
+    tg.MainButton.setText(t.buyBtn);
 }
 
 function updateBalance() {
