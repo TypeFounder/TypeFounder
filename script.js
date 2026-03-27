@@ -99,6 +99,43 @@ let userBalance = 0;
 let userData = { history: [], totalSpent: 0, totalPurchases: 0 };
 let paymentDetails = 'Karta: 8600 1234 5678 9012\nTelefon: +998 90 123 45 67';
 
+// Загрузка баланса
+function loadUserBalance() {
+    console.log('📡 Requesting balance...');
+    tg.sendData(JSON.stringify({
+        type: 'get_user_balance',
+        timestamp: new Date().toISOString()
+    }));
+}
+
+// Слушаем ответы от бота
+window.addEventListener('message', function(event) {
+    console.log('📨 Received:', event.data);
+    
+    if (event.data && typeof event.data === 'string') {
+        if (event.data.startsWith('USER_BALANCE:')) {
+            const balance = parseInt(event.data.replace('USER_BALANCE:', ''));
+            userBalance = balance;
+            updateBalance();
+            console.log('✅ Balance updated to:', balance);
+        }
+        
+        if (event.data.startsWith('PAYMENT_DETAILS:')) {
+            const details = event.data.replace('PAYMENT_DETAILS:', '');
+            paymentDetails = details;
+            const detailsEl = document.getElementById('paymentDetailsDisplay');
+            if (detailsEl) {
+                detailsEl.textContent = details;
+            }
+        }
+        
+        if (event.data.startsWith('USER_REQUESTS:')) {
+            const requestsData = JSON.parse(event.data.replace('USER_REQUESTS:', ''));
+            displayRequests(requestsData);
+        }
+    }
+});
+
 document.addEventListener('DOMContentLoaded', function() {
     const savedLang = localStorage.getItem('language');
     if (savedLang) {
@@ -111,6 +148,7 @@ document.addEventListener('DOMContentLoaded', function() {
         if (modal) modal.style.display = 'flex';
     }
     loadData();
+    loadUserBalance();
 });
 
 function selectLanguage(lang) {
@@ -246,8 +284,6 @@ function buyStars() {
 
 function showTopupModal(amount) {
     const t = translations[currentLang];
-    const user = tg.initDataUnsafe.user;
-    const defaultDetails = "Karta: 8600 1234 5678 9012\nTelefon: +998 90 123 45 67";
     const modal = document.createElement('div');
     modal.className = 'modal';
     modal.style.display = 'flex';
@@ -259,7 +295,7 @@ function showTopupModal(amount) {
         '</div>' +
         '<div style="background: rgba(30, 39, 54, 0.8); padding: 20px; border-radius: 12px; margin-bottom: 20px;">' +
         '<p style="margin-bottom: 10px; color: #8b92a8; font-size: 14px;">Реквизиты для оплаты:</p>' +
-        '<div id="paymentDetailsDisplay" style="background: #0f1419; padding: 15px; border-radius: 8px; font-family: monospace; white-space: pre-wrap; font-size: 14px; line-height: 1.6; min-height: 80px;">' + defaultDetails + '</div>' +
+        '<div id="paymentDetailsDisplay" style="background: #0f1419; padding: 15px; border-radius: 8px; font-family: monospace; white-space: pre-wrap; font-size: 14px; line-height: 1.6; min-height: 80px;">' + paymentDetails + '</div>' +
         '<p style="margin-top: 10px; font-size: 12px; color: #5b9bd5;">💡 Реквизиты обновляются админом</p>' +
         '</div>' +
         '<div style="display: flex; gap: 10px;">' +
@@ -482,15 +518,51 @@ function buyPremium() {
 }
 
 function refreshBalance() {
-    tg.sendData(JSON.stringify({
-        type: 'get_user_balance',
-        timestamp: new Date().toISOString()
-    }));
+    loadUserBalance();
     const btn = document.querySelector('.refresh-btn');
     if (btn) {
         btn.style.transform = 'rotate(360deg)';
         setTimeout(function() { btn.style.transform = 'rotate(0deg)'; }, 500);
     }
+}
+
+function displayRequests(requests) {
+    const requestsList = document.getElementById('requestsList');
+    if (!requests || requests.length === 0) {
+        requestsList.innerHTML = '<div style="text-align: center; padding: 40px; color: #8b92a8;"><div style="font-size: 48px; margin-bottom: 16px;">📭</div><div>Нет заявок</div></div>';
+        return;
+    }
+    requests.reverse();
+    let html = '';
+    requests.forEach(function(req) {
+        const statusClass = req.status;
+        const statusText = {
+            'pending': '⏳ Ожидает',
+            'approved': '✅ Одобрена',
+            'rejected': '❌ Отклонена'
+        }[req.status] || req.status;
+        const date = new Date(req.created_at).toLocaleString('ru-RU');
+        html += '<div class="request-card">' +
+            '<div class="request-header"><span class="request-id">#' + req.id + '</span><span class="request-amount">' + req.amount.toLocaleString() + " so'm</span></div>" +
+            '<div class="request-status ' + statusClass + '">' + statusText + '</div>' +
+            '<div class="request-proof">📄 Чек: ' + (req.payment_proof || 'Не загружен') + '</div>' +
+            '<div class="request-date">🕐 ' + date + '</div>' +
+            (req.status === 'pending' ? '<button class="upload-proof-btn" onclick="uploadProof(' + req.id + ')">📸 Загрузить чек</button>' : '') +
+            '</div>';
+    });
+    requestsList.innerHTML = html;
+}
+
+function uploadProof(requestId) {
+    tg.showAlert('📸 Загрузка чека\n\nОтправьте фото/скриншот чека боту в личные сообщения.\n\nЧек будет автоматически привязан к заявке #' + requestId);
+}
+
+function loadUserRequests() {
+    const requestsList = document.getElementById('requestsList');
+    tg.sendData(JSON.stringify({
+        type: 'get_user_requests',
+        timestamp: new Date().toISOString()
+    }));
 }
 
 tg.ready();
