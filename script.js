@@ -256,12 +256,11 @@ function showTopupModal(amount) {
     const t = translations[currentLang];
     const user = tg.initDataUnsafe.user;
     
-    // Получаем актуальные реквизиты
-    const settings = window.paymentDetails || 'Karta: 8600 1234 5678 9012\nTelefon: +998 90 123 45 67';
-    
     const modal = document.createElement('div');
     modal.className = 'modal';
     modal.style.display = 'flex';
+    
+    const details = window.paymentDetails || 'Загрузка...';
     
     modal.innerHTML = `
         <div class="modal-content" style="max-width: 90%; width: 450px;">
@@ -284,7 +283,7 @@ function showTopupModal(amount) {
                 <div style="background: #0f1419; padding: 15px; border-radius: 8px; 
                          font-family: monospace; white-space: pre-wrap; font-size: 14px; line-height: 1.6;
                          min-height: 80px;">
-                    ${settings}
+                    ${details}
                 </div>
             </div>
             
