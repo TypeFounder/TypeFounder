@@ -14,7 +14,7 @@ from database import (
     add_purchase, get_top_users, get_admin_settings, update_admin_settings
 )
 
-logging.basicConfig(level=logging.INFO)
+logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(name)s - %(levelname)s - %(message)s')
 logger = logging.getLogger(__name__)
 
 bot = Bot(token=BOT_TOKEN)
@@ -23,14 +23,23 @@ dp = Dispatcher()
 DATA_FILE = 'data.json'
 
 def load_all_data():
-    if os.path.exists(DATA_FILE):
-        with open(DATA_FILE, 'r', encoding='utf-8') as f:
-            return json.load(f)
+    try:
+        if os.path.exists(DATA_FILE):
+            with open(DATA_FILE, 'r', encoding='utf-8') as f:
+                data = json.load(f)
+                logger.info(f"Loaded data: {data.get('admin_settings', {}).get('payment_details', 'No payment details')[:50]}...")
+                return data
+    except Exception as e:
+        logger.error(f"Error loading data: {e}")
     return {'admins': []}
 
 def save_all_data(data):
-    with open(DATA_FILE, 'w', encoding='utf-8') as f:
-        json.dump(data, f, ensure_ascii=False, indent=2)
+    try:
+        with open(DATA_FILE, 'w', encoding='utf-8') as f:
+            json.dump(data, f, ensure_ascii=False, indent=2)
+        logger.info("Data saved successfully")
+    except Exception as e:
+        logger.error(f"Error saving data: {e}")
 
 async def is_admin(user_id):
     data = load_all_data()
@@ -297,6 +306,8 @@ async def handle_text(message: Message):
         return
     
     try:
+        logger.info(f"Admin message received: {message.text}")
+        
         if message.text.isdigit() and int(message.text) > 100000000:
             admin_id = int(message.text)
             data = load_all_data()
@@ -307,6 +318,7 @@ async def handle_text(message: Message):
             if admin_id not in data['admins']:
                 data['admins'].append(admin_id)
                 save_all_data(data)
+                logger.info(f"Admin added: {admin_id}")
                 await message.answer(f"✅ Админ добавлен: ID {admin_id}")
             else:
                 await message.answer(f"⚠️ Этот пользователь уже админ")
@@ -319,83 +331,95 @@ async def handle_text(message: Message):
             update_admin_settings({'star_rate': rate})
             await message.answer(f"✅ Курс обновлён: 1 звезда = {rate:,} so'm")
         else:
-            update_admin_settings({'payment_details': message.text})
-            await message.answer("✅ Реквизиты обновлены!")
+            # Это реквизиты - обновляем напрямую
+            data = load_all_data()
+            data['admin_settings']['payment_details'] = message.text
+            save_all_data(data)
             logger.info(f"Payment details updated to: {message.text}")
+            await message.answer("✅ Реквизиты обновлены!")
     except Exception as e:
         logger.error(f"Error in handle_text: {e}")
         await message.answer(f"❌ Ошибка: {e}")
 
 @dp.message(F.web_app_data)
 async def process_webapp_data(message: Message):
-    data = json.loads(message.web_app_data.data)
-    logger.info(f"WebApp data received: {data}")
-    
-    if data.get('type') == 'get_payment_details':
-        settings = get_admin_settings()
-        logger.info(f"Sending payment details: {settings['payment_details']}")
-        await message.answer(settings['payment_details'])
-        return
-    
-    if data.get('type') == 'topup_request':
-        username = data.get('username', 'Не указан')
-        amount = data.get('amount', 0)
-        proof = data.get('proof', 'Не предоставлен')
+    try:
+        data = json.loads(message.web_app_data.data)
+        logger.info(f"WebApp data received: {data}")
         
-        logger.info(f"Creating topup request: user={message.from_user.id}, amount={amount}, username={username}, proof={proof}")
+        if data.get('type') == 'get_payment_details':
+            settings = get_admin_settings()
+            payment_details = settings.get('payment_details', 'Not set')
+            logger.info(f"Sending payment details: {payment_details}")
+            await message.answer(payment_details)
+            return
         
-        request = create_topup_request(message.from_user.id, amount, proof, username)
+        if data.get('type') == 'topup_request':
+            username = data.get('username', 'Не указан')
+            amount = data.get('amount', 0)
+            proof = data.get('proof', 'Не предоставлен')
+            
+            logger.info(f"Creating topup request: user={message.from_user.id}, amount={amount}, username={username}, proof={proof}")
+            
+            request = create_topup_request(message.from_user.id, amount, proof, username)
+            
+            logger.info(f"Topup request created: {request}")
+            
+            settings = get_admin_settings()
+            
+            # Получаем список всех админов
+            admin_list = [ADMIN_ID]
+            data_file = 'data.json'
+            if os.path.exists(data_file):
+                with open(data_file, 'r', encoding='utf-8') as f:
+                    data_json = json.load(f)
+                    admin_list.extend(data_json.get('admins', []))
+            
+            logger.info(f"Sending to admins: {admin_list}")
+            
+            # Отправляем всем админам
+            for admin_id in set(admin_list):
+                try:
+                    await bot.send_message(
+                        admin_id,
+                        f"💰 <b>НОВАЯ ЗАЯВКА # {request['id']}</b>\n\n"
+                        f"👤 <b>Пользователь:</b> @{username}\n"
+                        f"🔢 <b>ID:</b> <code>{message.from_user.id}</code>\n"
+                        f"💵 <b>Сумма:</b> {amount:,} so'm\n"
+                        f"📄 <b>Чек:</b> {proof}\n"
+                        f"⏰ <b>Время:</b> {datetime.now().strftime('%d.%m.%Y %H:%M')}\n\n"
+                        f"Реквизиты:\n{settings.get('payment_details', 'Not set')}",
+                        parse_mode="HTML"
+                    )
+                    logger.info(f"Topup request sent to admin {admin_id}")
+                except Exception as e:
+                    logger.error(f"Failed to send to admin {admin_id}: {e}")
+            
+            await message.answer(
+                f"✅ <b>Заявка отправлена!</b>\n\n"
+                f"💵 Сумма: {amount:,} so'm\n"
+                f"👤 Username: @{username}\n"
+                f"📄 Чек: {proof}\n\n"
+                f"Ожидайте подтверждения админа.",
+                parse_mode="HTML"
+            )
+            return
         
-        logger.info(f"Topup request created: {request}")
+        if data.get('type') == 'stars':
+            if deduct_balance(message.from_user.id, data['price']):
+                add_purchase(message.from_user.id, 'stars', data['stars'], data['price'])
+                await message.answer(f"✅ Куплено {data['stars']} звёзд!\n💰 {data['price']:,} so'm")
+            else:
+                await message.answer("❌ Недостаточно средств\nПополните баланс")
         
-        settings = get_admin_settings()
-        
-        admin_list = [ADMIN_ID]
-        if os.path.exists(DATA_FILE):
-            with open(DATA_FILE, 'r', encoding='utf-8') as f:
-                data_json = json.load(f)
-                admin_list.extend(data_json.get('admins', []))
-        
-        for admin_id in set(admin_list):
-            try:
-                await bot.send_message(
-                    admin_id,
-                    f"💰 <b>НОВАЯ ЗАЯВКА # {request['id']}</b>\n\n"
-                    f"👤 <b>Пользователь:</b> @{username}\n"
-                    f"🔢 <b>ID:</b> <code>{message.from_user.id}</code>\n"
-                    f"💵 <b>Сумма:</b> {amount:,} so'm\n"
-                    f"📄 <b>Чек:</b> {proof}\n"
-                    f"⏰ <b>Время:</b> {datetime.now().strftime('%d.%m.%Y %H:%M')}\n\n"
-                    f"Реквизиты:\n{settings['payment_details']}",
-                    parse_mode="HTML"
-                )
-                logger.info(f"Topup request sent to admin {admin_id}")
-            except Exception as e:
-                logger.error(f"Failed to send to admin {admin_id}: {e}")
-        
-        await message.answer(
-            f"✅ <b>Заявка отправлена!</b>\n\n"
-            f"💵 Сумма: {amount:,} so'm\n"
-            f"👤 Username: @{username}\n"
-            f"📄 Чек: {proof}\n\n"
-            f"Ожидайте подтверждения админа.",
-            parse_mode="HTML"
-        )
-        return
-    
-    if data.get('type') == 'stars':
-        if deduct_balance(message.from_user.id, data['price']):
-            add_purchase(message.from_user.id, 'stars', data['stars'], data['price'])
-            await message.answer(f"✅ Куплено {data['stars']} звёзд!\n💰 {data['price']:,} so'm")
-        else:
-            await message.answer("❌ Недостаточно средств\nПополните баланс")
-    
-    elif data.get('type') == 'gift':
-        if deduct_balance(message.from_user.id, data['price']):
-            add_purchase(message.from_user.id, 'gift', data['stars'], data['price'], data['gift'])
-            await message.answer(f"✅ Подарок {data['gift']}!\n💰 {data['price']:,} so'm")
-        else:
-            await message.answer("❌ Недостаточно средств")
+        elif data.get('type') == 'gift':
+            if deduct_balance(message.from_user.id, data['price']):
+                add_purchase(message.from_user.id, 'gift', data['stars'], data['price'], data['gift'])
+                await message.answer(f"✅ Подарок {data['gift']}!\n💰 {data['price']:,} so'm")
+            else:
+                await message.answer("❌ Недостаточно средств")
+    except Exception as e:
+        logger.error(f"Error in process_webapp_data: {e}")
 
 async def main():
     logger.info("Starting bot...")

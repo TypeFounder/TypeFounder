@@ -1,14 +1,23 @@
 import json
 import os
+import logging
 from datetime import datetime
 
+logger = logging.getLogger(__name__)
 DATA_FILE = 'data.json'
 
 def load_data():
-    if os.path.exists(DATA_FILE):
-        with open(DATA_FILE, 'r', encoding='utf-8') as f:
-            return json.load(f)
-    return {
+    try:
+        if os.path.exists(DATA_FILE):
+            with open(DATA_FILE, 'r', encoding='utf-8') as f:
+                data = json.load(f)
+                logger.info(f"Data loaded from {DATA_FILE}")
+                return data
+    except Exception as e:
+        logger.error(f"Error loading data: {e}")
+    
+    # Default data
+    default_data = {
         'admins': [],
         'admin_settings': {
             'star_rate': 200,
@@ -27,10 +36,19 @@ def load_data():
         'topup_requests': [],
         'purchases': []
     }
+    
+    # Save default data
+    save_data(default_data)
+    logger.info("Default data created")
+    return default_data
 
 def save_data(data):
-    with open(DATA_FILE, 'w', encoding='utf-8') as f:
-        json.dump(data, f, ensure_ascii=False, indent=2)
+    try:
+        with open(DATA_FILE, 'w', encoding='utf-8') as f:
+            json.dump(data, f, ensure_ascii=False, indent=2)
+        logger.info(f"Data saved to {DATA_FILE}")
+    except Exception as e:
+        logger.error(f"Error saving data: {e}")
 
 def get_user(user_id):
     data = load_data()
@@ -77,6 +95,7 @@ def create_topup_request(user_id, amount, payment_proof, username='Не указ
     }
     data['topup_requests'].append(request)
     save_data(data)
+    logger.info(f"Topup request created: {request}")
     return request
 
 def get_pending_topups():
@@ -126,6 +145,8 @@ def update_admin_settings(settings):
     data = load_data()
     data['admin_settings'].update(settings)
     save_data(data)
+    logger.info(f"Admin settings updated: {settings}")
 
 def get_admin_settings():
-    return load_data()['admin_settings']
+    data = load_data()
+    return data['admin_settings']
