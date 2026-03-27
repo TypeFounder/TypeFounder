@@ -16,6 +16,9 @@ const translations = {
         usernamePlaceholder: 'Введите username',
         selfBtn: 'Себе',
         amountLabel: 'Количество звёзд',
+        customAmountLabel: 'Или введите свою сумму',
+        customAmountPlaceholder: 'Например: 150',
+        customAmountBtn: 'Добавить',
         buyBtn: 'Купить',
         giftTitle: 'Telegram подарки',
         ratingTitle: 'Топ пользователи',
@@ -27,11 +30,19 @@ const translations = {
         navGift: 'Подарки',
         navRating: 'Рейтинг',
         navProfile: 'Профиль',
-        currency: '₽',
+        currency: 'so\'m',
         noHistory: 'История покупок пуста',
         selectGift: 'Выберите подарок',
         purchaseSuccess: 'Покупка успешна!',
-        confirmPurchase: 'Подтвердить покупку'
+        confirmPurchase: 'Подтвердить покупку',
+        insufficientBalance: 'Недостаточно средств',
+        topupBalance: 'Пополнить баланс',
+        topupTitle: 'Пополнение баланса',
+        topupAmount: 'Сумма пополнения',
+        topupProof: 'Скриншот оплаты',
+        topupSubmit: 'Отправить заявку',
+        topupSuccess: 'Заявка отправлена админу',
+        lang: 'RU'
     },
     uz: {
         appTitle: 'Uz Give',
@@ -44,6 +55,9 @@ const translations = {
         usernamePlaceholder: "Username kiriting",
         selfBtn: "O'zim uchun",
         amountLabel: "Stars miqdori",
+        customAmountLabel: "Yoki o'z miqdoringizni kiriting",
+        customAmountPlaceholder: "Masalan: 150",
+        customAmountBtn: "Qo'shish",
         buyBtn: "Sotib olish",
         giftTitle: "Telegram sovg'alar",
         ratingTitle: "Top foydalanuvchilar",
@@ -59,32 +73,41 @@ const translations = {
         noHistory: "Xaridlar tarixi bo'sh",
         selectGift: "Sovg'ani tanlang",
         purchaseSuccess: "Xarid muvaffaqiyatli!",
-        confirmPurchase: "Xaridni tasdiqlash"
+        confirmPurchase: "Xaridni tasdiqlash",
+        insufficientBalance: "Mablag' yetarli emas",
+        topupBalance: "Balansni to'ldirish",
+        topupTitle: "Balansni to'ldirish",
+        topupAmount: "To'ldirish summasi",
+        topupProof: "To'lov skrinshoti",
+        topupSubmit: "Zayavka yuborish",
+        topupSuccess: "Zayavka adminga yuborildi",
+        lang: 'UZ'
     }
 };
 
-// Prices
+// Prices (always in soms)
 const starPrices = {
-    50: { uz: 10000, ru: 150 },
-    75: { uz: 14000, ru: 210 },
-    100: { uz: 18000, ru: 270 },
-    250: { uz: 42000, ru: 630 },
-    500: { uz: 80000, ru: 1200 }
+    50: 10000,
+    75: 14000,
+    100: 18000,
+    250: 42000,
+    500: 80000
 };
 
-// Gifts (15-100 stars)
+// Gifts
 const gifts = [
-    { id: 1, emoji: '🌹', name: { ru: 'Роза', uz: 'Atirgul' }, stars: 15 },
-    { id: 2, emoji: '🔥', name: { ru: 'Огонь', uz: 'Olov' }, stars: 20 },
-    { id: 3, emoji: '💎', name: { ru: 'Бриллиант', uz: 'Olmos' }, stars: 30 },
-    { id: 4, emoji: '👑', name: { ru: 'Корона', uz: 'Toj' }, stars: 50 },
-    { id: 5, emoji: '🚀', name: { ru: 'Ракета', uz: 'Raketa' }, stars: 75 },
-    { id: 6, emoji: '🏆', name: { ru: 'Трофей', uz: 'Kubok' }, stars: 100 }
+    { id: 1, emoji: '🌹', name: { ru: 'Роза', uz: 'Atirgul' }, stars: 15, price: 3000 },
+    { id: 2, emoji: '🔥', name: { ru: 'Огонь', uz: 'Olov' }, stars: 20, price: 4000 },
+    { id: 3, emoji: '💎', name: { ru: 'Бриллиант', uz: 'Olmos' }, stars: 30, price: 6000 },
+    { id: 4, emoji: '👑', name: { ru: 'Корона', uz: 'Toj' }, stars: 50, price: 10000 },
+    { id: 5, emoji: '🚀', name: { ru: 'Ракета', uz: 'Raketa' }, stars: 75, price: 15000 },
+    { id: 6, emoji: '🏆', name: { ru: 'Трофей', uz: 'Kubok' }, stars: 100, price: 20000 }
 ];
 
 let currentLang = 'uz';
 let selectedStars = 50;
 let selectedGift = null;
+let userBalance = 0;
 let userData = {
     username: '',
     balance: 0,
@@ -122,12 +145,21 @@ function selectLanguage(lang) {
     initApp();
 }
 
+function toggleLanguage() {
+    currentLang = currentLang === 'uz' ? 'ru' : 'uz';
+    localStorage.setItem('language', currentLang);
+    document.getElementById('currentLangText').textContent = translations[currentLang].lang;
+    initApp();
+}
+
 function initApp() {
     updateTexts();
     updatePriceDisplay();
     loadGifts();
     loadRating();
     loadProfile();
+    updateBalance();
+    
     tg.MainButton.setText(translations[currentLang].buyBtn);
     tg.MainButton.onClick(() => {
         buyStars();
@@ -136,6 +168,8 @@ function initApp() {
 
 function updateTexts() {
     const t = translations[currentLang];
+    
+    // Update all text elements
     document.getElementById('starsTitle').textContent = t.starsTitle;
     document.getElementById('recipientLabel').textContent = t.recipientLabel;
     document.getElementById('username').placeholder = t.usernamePlaceholder;
@@ -153,15 +187,29 @@ function updateTexts() {
     document.getElementById('navRating').textContent = t.navRating;
     document.getElementById('navProfile').textContent = t.navProfile;
     
-    // Update currency symbols
-    document.querySelectorAll('.currency-symbol').forEach(el => {
-        el.textContent = t.currency;
-    });
-    
     // Update tab buttons
     document.querySelector('[data-tab="stars"]').textContent = t.starsTab;
     document.querySelector('[data-tab="gift"]').textContent = t.giftTab;
     document.querySelector('[data-tab="rating"]').textContent = t.ratingTab;
+    
+    // Update custom amount section
+    const customLabel = document.querySelector('.custom-amount-label');
+    if (customLabel) {
+        customLabel.textContent = t.customAmountLabel;
+    }
+    const customInput = document.getElementById('customStarsAmount');
+    if (customInput) {
+        customInput.placeholder = t.customAmountPlaceholder;
+    }
+    const customBtn = document.querySelector('.custom-amount-btn');
+    if (customBtn) {
+        customBtn.textContent = t.customAmountBtn;
+    }
+}
+
+function updateBalance() {
+    const t = translations[currentLang];
+    document.getElementById('balance').textContent = `${userBalance.toLocaleString()} ${t.currency}`;
 }
 
 function selectStars(amount) {
@@ -179,9 +227,35 @@ function selectStars(amount) {
     tg.MainButton.show();
 }
 
+function setCustomStars() {
+    const customAmount = parseInt(document.getElementById('customStarsAmount').value);
+    
+    if (customAmount && customAmount > 0) {
+        selectedStars = customAmount;
+        document.getElementById('starsAmount').value = customAmount;
+        
+        // Calculate price (200 soms per star)
+        const price = customAmount * 200;
+        
+        updatePriceDisplayCustom(price);
+        
+        document.querySelectorAll('.quick-btn').forEach(btn => {
+            btn.classList.remove('active');
+        });
+        
+        tg.MainButton.show();
+    }
+}
+
 function updatePriceDisplay() {
-    const price = starPrices[selectedStars] ? starPrices[selectedStars][currentLang] : 0;
-    document.getElementById('priceDisplay').textContent = `${price.toLocaleString()} ${translations[currentLang].currency}`;
+    const price = starPrices[selectedStars] || (selectedStars * 200);
+    const t = translations[currentLang];
+    document.getElementById('priceDisplay').textContent = `${price.toLocaleString()} ${t.currency}`;
+}
+
+function updatePriceDisplayCustom(price) {
+    const t = translations[currentLang];
+    document.getElementById('priceDisplay').textContent = `${price.toLocaleString()} ${t.currency}`;
 }
 
 function setSelf() {
@@ -203,7 +277,24 @@ function buyStars() {
         return;
     }
     
-    const price = starPrices[selectedStars][currentLang];
+    const price = starPrices[selectedStars] || (selectedStars * 200);
+    
+    if (userBalance < price) {
+        const t = translations[currentLang];
+        tg.showPopup({
+            title: t.insufficientBalance,
+            message: `${t.topupBalance}?\n${t.balance || 0} / ${price} ${t.currency}`,
+            buttons: [
+                { id: 'topup', type: 'ok', text: t.topupBalance },
+                { id: 'cancel', type: 'cancel' }
+            ]
+        }, (buttonId) => {
+            if (buttonId === 'topup') {
+                showTopupModal(price);
+            }
+        });
+        return;
+    }
     
     // Save to history
     addToHistory('stars', selectedStars, price, username);
@@ -213,7 +304,7 @@ function buyStars() {
         stars: selectedStars,
         username: username,
         price: price,
-        currency: currentLang === 'ru' ? 'RUB' : 'UZS',
+        currency: 'UZS',
         timestamp: new Date().toISOString()
     };
     
@@ -223,230 +314,173 @@ function buyStars() {
         message: `${selectedStars} ⭐\n${price.toLocaleString()} ${translations[currentLang].currency}`,
         buttons: [{ id: 'ok', type: 'ok' }]
     }, () => {
+        userBalance -= price;
+        updateBalance();
         tg.close();
     });
 }
 
-function loadGifts() {
-    const grid = document.getElementById('giftsGrid');
-    grid.innerHTML = '';
-    
-    gifts.forEach(gift => {
-        const card = document.createElement('div');
-        card.className = 'gift-card';
-        card.onclick = () => selectGift(gift);
-        
-        const price = getGiftPrice(gift.stars);
-        
-        card.innerHTML = `
-            <div class="gift-emoji">${gift.emoji}</div>
-            <div class="gift-name">${gift.name[currentLang]}</div>
-            <div class="gift-stars">${gift.stars} ⭐</div>
-            <div class="gift-price">${price.toLocaleString()} ${translations[currentLang].currency}</div>
-        `;
-        
-        grid.appendChild(card);
-    });
-}
-
-function selectGift(gift) {
-    selectedGift = gift;
-    
-    document.querySelectorAll('.gift-card').forEach((card, index) => {
-        if (gifts[index].id === gift.id) {
-            card.classList.add('add');
-        } else {
-            card.classList.remove('active');
-        }
-    });
-    
-    const price = getGiftPrice(gift.stars);
+function showTopupModal(amount) {
+    const t = translations[currentLang];
     
     tg.showPopup({
-        title: gift.name[currentLang],
-        message: `${gift.stars} ⭐\n${price.toLocaleString()} ${translations[currentLang].currency}\n\n${translations[currentLang].confirmPurchase}?`,
-        buttons: [
-            { id: 'buy', type: 'ok', text: translations[currentLang].buyBtn },
-            { id: 'cancel', type: 'cancel' }
-        ]
-    }, (buttonId) => {
-        if (buttonId === 'buy') {
-            buyGift(gift, price);
+        title: t.topupTitle,
+        message: `${t.topupAmount}: ${amount || 10Конечно! Вот все файлы полностью готовые к замене:
+
+---
+
+## 📄 **database.py** (НОВЫЙ ФАЙЛ - создайте)
+
+```python
+import json
+import os
+from datetime import datetime
+
+DATA_FILE = 'data.json'
+
+def load_data():
+    if os.path.exists(DATA_FILE):
+        with open(DATA_FILE, 'r', encoding='utf-8') as f:
+            return json.load(f)
+    return {
+        'admin_settings': {
+            'star_prices': {
+                50: 10000,
+                75: 14000,
+                100: 18000,
+                250: 42000,
+                500: 80000
+            },
+            'gifts': [
+                {'id': 1, 'emoji': '🌹', 'name': 'Atirgul', 'stars': 15, 'price': 3000},
+                {'id': 2, 'emoji': '🔥', 'name': 'Olov', 'stars': 20, 'price': 4000},
+                {'id': 3, 'emoji': '💎', 'name': 'Olmos', 'stars': 30, 'price': 6000},
+                {'id': 4, 'emoji': '👑', 'name': 'Toj', 'stars': 50, 'price': 10000},
+                {'id': 5, 'emoji': '🚀', 'name': 'Raketa', 'stars': 75, 'price': 15000},
+                {'id': 6, 'emoji': '🏆', 'name': 'Kubok', 'stars': 100, 'price': 20000}
+            ],
+            'payment_details': "Karta: 8600 1234 5678 9012\nTelefon: +998 90 123 45 67",
+            'admin_id': None
+        },
+        'users': {},
+        'topup_requests': [],
+        'purchases': []
+    }
+
+def save_data(data):
+    with open(DATA_FILE, 'w', encoding='utf-8') as f:
+        json.dump(data, f, ensure_ascii=False, indent=2)
+
+def get_user(user_id):
+    data = load_data()
+    if str(user_id) not in data['users']:
+        data['users'][str(user_id)] = {
+            'user_id': user_id,
+            'username': '',
+            'balance': 0,
+            'language': 'uz',
+            'total_spent': 0,
+            'purchases': []
         }
-    });
-}
+        save_data(data)
+    return data['users'][str(user_id)]
 
-function buyGift(gift, price) {
-    const username = tg.initDataUnsafe.user?.username || tg.initDataUnsafe.user?.first_name || 'Unknown';
-    
-    addToHistory('gift', gift.stars, price, gift.name[currentLang]);
-    
-    const data = {
-        type: 'gift',
-        gift: gift.name[currentLang],
-        stars: gift.stars,
-        price: price,
-        username: username,
-        currency: currentLang === 'ru' ? 'RUB' : 'UZS',
-        timestamp: new Date().toISOString()
-    };
-    
-    tg.sendData(JSON.stringify(data));
-    loadProfile();
-}
+def update_user(user_id, updates):
+    data = load_data()
+    if str(user_id) in data['users']:
+        data['users'][str(user_id)].update(updates)
+        save_data(data)
 
-function getGiftPrice(stars) {
-    // Simple price calculation based on stars
-    if (currentLang === 'uz') {
-        return Math.round(stars * 200);
-    } else {
-        return Math.round(stars * 3);
+def add_balance(user_id, amount):
+    data = load_data()
+    if str(user_id) in data['users']:
+        data['users'][str(user_id)]['balance'] += amount
+        save_data(data)
+
+def deduct_balance(user_id, amount):
+    data = load_data()
+    if str(user_id) in data['users']:
+        if data['users'][str(user_id)]['balance'] >= amount:
+            data['users'][str(user_id)]['balance'] -= amount
+            data['users'][str(user_id)]['total_spent'] += amount
+            save_data(data)
+            return True
+    return False
+
+def create_topup_request(user_id, amount, payment_proof):
+    data = load_data()
+    request = {
+        'id': len(data['topup_requests']) + 1,
+        'user_id': user_id,
+        'username': data['users'].get(str(user_id), {}).get('username', 'Unknown'),
+        'amount': amount,
+        'payment_proof': payment_proof,
+        'status': 'pending',
+        'created_at': datetime.now().isoformat()
     }
-}
+    data['topup_requests'].append(request)
+    save_data(data)
+    return request
 
-function loadRating() {
-    const list = document.getElementById('ratingList');
-    
-    // Sample rating data (in real app, load from backend)
-    const rating = [
-        { name: 'Ali', spent: 250000, purchases: 15 },
-        { name: 'Vali', spent: 180000, purchases: 10 },
-        { name: 'Sardor', spent: 120000, purchases: 8 },
-        { name: 'Rustam', spent: 95000, purchases: 6 },
-        { name: 'Dilshod', spent: 75000, purchases: 5 }
-    ];
-    
-    list.innerHTML = '';
-    
-    rating.forEach((user, index) => {
-        const item = document.createElement('div');
-        item.className = 'rating-item';
-        
-        let positionClass = '';
-        if (index === 0) positionClass = 'gold';
-        else if (index === 1) positionClass = 'silver';
-        else if (index === 2) positionClass = 'bronze';
-        
-        const currency = translations[currentLang].currency;
-        
-        item.innerHTML = `
-            <div class="rating-position ${positionClass}">#${index + 1}</div>
-            <div class="rating-avatar">${user.name[0]}</div>
-            <div class="rating-info">
-                <div class="rating-name">${user.name}</div>
-                <div class="rating-stats">${user.purchases} ${currentLang === 'uz' ? 'xarid' : 'покупок'}</div>
-            </div>
-            <div class="rating-value">${user.spent.toLocaleString()} ${currency}</div>
-        `;
-        
-        list.appendChild(item);
-    });
-}
+def get_pending_topups():
+    data = load_data()
+    return [r for r in data['topup_requests'] if r['status'] == 'pending']
 
-function loadProfile() {
-    document.getElementById('totalSpentValue').textContent = `${userData.totalSpent.toLocaleString()} ${translations[currentLang].currency}`;
-    document.getElementById('totalPurchasesValue').textContent = userData.totalPurchases;
-    
-    const list = document.getElementById('historyList');
-    
-    if (userData.history.length === 0) {
-        list.innerHTML = `
-            <div class="empty-state">
-                <div class="empty-state-icon">📦</div>
-                <div class="empty-state-text">${translations[currentLang].noHistory}</div>
-            </div>
-        `;
-        return;
+def approve_topup(request_id):
+    data = load_data()
+    for request in data['topup_requests']:
+        if request['id'] == request_id:
+            request['status'] = 'approved'
+            user_id = request['user_id']
+            amount = request['amount']
+            if str(user_id) in data['users']:
+                data['users'][str(user_id)]['balance'] += amount
+            save_data(data)
+            return request
+    return None
+
+def reject_topup(request_id):
+    data = load_data()
+    for request in data['topup_requests']:
+        if request['id'] == request_id:
+            request['status'] = 'rejected'
+            save_data(data)
+            return request
+    return None
+
+def add_purchase(user_id, item_type, stars, price, details=''):
+    data = load_data()
+    purchase = {
+        'user_id': user_id,
+        'username': data['users'].get(str(user_id), {}).get('username', 'Unknown'),
+        'type': item_type,
+        'stars': stars,
+        'price': price,
+        'details': details,
+        'timestamp': datetime.now().isoformat()
     }
-    
-    list.innerHTML = '';
-    
-    // Show last 10 purchases
-    userData.history.slice().reverse().slice(0, 10).forEach(item => {
-        const div = document.createElement('div');
-        div.className = 'history-item';
-        
-        const date = new Date(item.timestamp);
-        const dateStr = date.toLocaleDateString() + ' ' + date.toLocaleTimeString();
-        
-        div.innerHTML = `
-            <div class="history-header">
-                <div class="history-type">${item.type === 'stars' ? '⭐ Stars' : '🎁 ' + item.details}</div>
-                <div class="history-amount">${item.price.toLocaleString()} ${translations[currentLang].currency}</div>
-            </div>
-            <div class="history-details">${item.stars} ⭐ | ${item.username}</div>
-            <div class="history-date">${dateStr}</div>
-        `;
-        
-        list.appendChild(div);
-    });
-}
+    data['purchases'].append(purchase)
+    if str(user_id) in data['users']:
+        data['users'][str(user_id)]['purchases'].append(purchase)
+        data['users'][str(user_id)]['total_spent'] += price
+    save_data(data)
 
-function addToHistory(type, stars, price, details) {
-    userData.history.push({
-        type,
-        stars,
-        price,
-        details,
-        username: tg.initDataUnsafe.user?.username || 'Unknown',
-        timestamp: new Date().toISOString()
-    });
-    
-    userData.totalSpent += price;
-    userData.totalPurchases += 1;
-    
-    saveData();
-    loadProfile();
-}
+def get_user_purchases(user_id, limit=10):
+    data = load_data()
+    user_purchases = [p for p in data['purchases'] if p['user_id'] == user_id]
+    return user_purchases[-limit:]
 
-function saveData() {
-    localStorage.setItem('userData', JSON.stringify(userData));
-}
+def get_top_users(limit=10):
+    data = load_data()
+    users = list(data['users'].values())
+    users.sort(key=lambda x: x['total_spent'], reverse=True)
+    return users[:limit]
 
-function loadData() {
-    const saved = localStorage.getItem('userData');
-    if (saved) {
-        userData = JSON.parse(saved);
-    }
-}
+def update_admin_settings(settings):
+    data = load_data()
+    data['admin_settings'].update(settings)
+    save_data(data)
 
-function switchTab(tab) {
-    // Hide all tabs
-    document.querySelectorAll('.tab-content').forEach(t => t.classList.remove('active'));
-    document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
-    
-    // Show selected tab
-    document.getElementById(tab + 'Tab').classList.add('active');
-    document.querySelector(`[data-tab="${tab}"]`).classList.add('active');
-    
-    // Update nav
-    navTo(tab);
-}
-
-function navTo(page) {
-    document.querySelectorAll('.nav-item').forEach(item => {
-        item.classList.remove('active');
-    });
-    
-    event.target.closest('.nav-item').classList.add('active');
-    
-    if (page === 'menu') {
-        switchTab('stars');
-    } else if (page === 'gift') {
-        switchTab('gift');
-    } else if (page === 'rating') {
-        switchTab('rating');
-    } else if (page === 'profile') {
-        switchTab('profile');
-    }
-}
-
-function addBalance() {
-    tg.showAlert(currentLang === 'uz' ? "Tez orada" : "Скоро");
-}
-
-function closeApp() {
-    tg.close();
-}
-
-tg.ready();
+def get_admin_settings():
+    data = load_data()
+    return data['admin_settings']

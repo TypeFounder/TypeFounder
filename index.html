@@ -13,7 +13,7 @@
         <div class="modal-content">
             <h2>Выберите язык / Tilni tanlang</h2>
             <button class="lang-btn" onclick="selectLanguage('ru')">
-                🇷🇺 Русский
+                🇷 Русский
             </button>
             <button class="lang-btn" onclick="selectLanguage('uz')">
                 🇺🇿 O'zbekcha
@@ -37,9 +37,16 @@
                 <div class="logo">🎁</div>
                 <div class="app-name">Uz Give</div>
                 <div class="balance">
-                    <span id="balance">0 <span class="currency-symbol">so'm</span></span>
-                    <button class="add-btn" onclick="addBalance()">+</button>
+                    <span id="balance">0 so'm</span>
+                    <button class="add-btn" onclick="showTopupModal()">+</button>
                 </div>
+            </div>
+
+            <!-- Language Switcher -->
+            <div class="language-switcher">
+                <button onclick="toggleLanguage()" class="lang-switch-btn">
+                    🌐 <span id="currentLangText">UZ</span>
+                </button>
             </div>
             
             <div class="tab-buttons">
@@ -81,6 +88,14 @@
                     <button class="quick-btn" onclick="selectStars(100)">100</button>
                     <button class="quick-btn" onclick="selectStars(250)">250</button>
                     <button class="quick-btn" onclick="selectStars(500)">500</button>
+                </div>
+            </div>
+
+            <div class="form-group">
+                <label class="form-label">Yoki o'z miqdoringizni kiriting</label>
+                <div class="custom-amount-wrapper">
+                    <input type="number" id="customStarsAmount" class="custom-amount-input" placeholder="Masalan: 150">
+                    <button class="custom-amount-btn" onclick="setCustomStars()">Qo'shish</button>
                 </div>
             </div>
 
