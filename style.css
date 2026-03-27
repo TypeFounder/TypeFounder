@@ -353,3 +353,288 @@ body {
         max-width: 100%;
     }
 }
+/* Language Modal */
+.modal {
+    display: flex;
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background: rgba(0, 0, 0, 0.9);
+    z-index: 10000;
+    align-items: center;
+    justify-content: center;
+}
+
+.modal-content {
+    background: linear-gradient(135deg, #1a1f2e 0%, #0f1419 100%);
+    padding: 40px;
+    border-radius: 20px;
+    text-align: center;
+    max-width: 90%;
+    width: 320px;
+    border: 2px solid #5b9bd5;
+}
+
+.modal-content h2 {
+    color: #ffffff;
+    margin-bottom: 30px;
+    font-size: 22px;
+}
+
+.lang-btn {
+    display: block;
+    width: 100%;
+    padding: 16px;
+    margin: 10px 0;
+    background: rgba(30, 39, 54, 0.8);
+    border: 2px solid #2d3a4f;
+    border-radius: 12px;
+    color: #ffffff;
+    font-size: 16px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.3s;
+}
+
+.lang-btn:hover {
+    background: #5b9bd5;
+    border-color: #5b9bd5;
+    transform: translateY(-2px);
+}
+
+/* Tab Content */
+.tab-content {
+    display: none;
+    padding: 24px 16px;
+}
+
+.tab-content.active {
+    display: block;
+}
+
+/* Gifts Grid */
+.gifts-grid {
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap: 12px;
+    margin-top: 16px;
+}
+
+.gift-card {
+    background: rgba(30, 39, 54, 0.6);
+    border: 2px solid #2d3a4f;
+    border-radius: 16px;
+    padding: 16px;
+    text-align: center;
+    cursor: pointer;
+    transition: all 0.3s;
+}
+
+.gift-card:hover {
+    border-color: #5b9bd5;
+    transform: translateY(-4px);
+    background: rgba(30, 39, 54, 0.8);
+}
+
+.gift-card.selected {
+    border-color: #5b9bd5;
+    background: rgba(91, 155, 213, 0.2);
+}
+
+.gift-emoji {
+    font-size: 48px;
+    margin-bottom: 8px;
+}
+
+.gift-name {
+    font-size: 14px;
+    font-weight: 600;
+    color: #ffffff;
+    margin-bottom: 4px;
+}
+
+.gift-stars {
+    font-size: 16px;
+    font-weight: 700;
+    color: #5b9bd5;
+    margin-bottom: 4px;
+}
+
+.gift-price {
+    font-size: 14px;
+    color: #8b92a8;
+}
+
+/* Rating List */
+.rating-list {
+    margin-top: 16px;
+}
+
+.rating-item {
+    display: flex;
+    align-items: center;
+    background: rgba(30, 39, 54, 0.6);
+    border: 2px solid #2d3a4f;
+    border-radius: 12px;
+    padding: 12px 16px;
+    margin-bottom: 8px;
+    transition: all 0.3s;
+}
+
+.rating-item:hover {
+    border-color: #5b9bd5;
+}
+
+.rating-position {
+    font-size: 24px;
+    font-weight: 700;
+    color: #5b9bd5;
+    width: 40px;
+    text-align: center;
+}
+
+.rating-position.gold {
+    color: #FFD700;
+}
+
+.rating-position.silver {
+    color: #C0C0C0;
+}
+
+.rating-position.bronze {
+    color: #CD7F32;
+}
+
+.rating-avatar {
+    width: 48px;
+    height: 48px;
+    border-radius: 50%;
+    background: #5b9bd5;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 24px;
+    margin: 0 12px;
+}
+
+.rating-info {
+    flex: 1;
+}
+
+.rating-name {
+    font-size: 14px;
+    font-weight: 600;
+    color: #ffffff;
+    margin-bottom: 4px;
+}
+
+.rating-stats {
+    font-size: 12px;
+    color: #8b92a8;
+}
+
+.rating-value {
+    font-size: 16px;
+    font-weight: 700;
+    color: #5b9bd5;
+}
+
+/* Profile */
+.profile-info {
+    margin: 20px 0;
+}
+
+.profile-stat {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    background: rgba(30, 39, 54, 0.6);
+    border: 2px solid #2d3a4f;
+    border-radius: 12px;
+    padding: 16px;
+    margin-bottom: 12px;
+}
+
+.stat-label {
+    font-size: 14px;
+    color: #8b92a8;
+}
+
+.stat-value {
+    font-size: 18px;
+    font-weight: 700;
+    color: #5b9bd5;
+}
+
+.history-title {
+    font-size: 18px;
+    font-weight: 700;
+    color: #ffffff;
+    margin: 24px 0 12px 0;
+}
+
+.history-list {
+    margin-bottom: 20px;
+}
+
+.history-item {
+    background: rgba(30, 39, 54, 0.6);
+    border: 2px solid #2d3a4f;
+    border-radius: 12px;
+    padding: 12px 16px;
+    margin-bottom: 8px;
+}
+
+.history-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 8px;
+}
+
+.history-type {
+    font-size: 14px;
+    font-weight: 600;
+    color: #ffffff;
+}
+
+.history-amount {
+    font-size: 14px;
+    font-weight: 700;
+    color: #5b9bd5;
+}
+
+.history-details {
+    font-size: 12px;
+    color: #8b92a8;
+}
+
+.history-date {
+    font-size: 11px;
+    color: #6b7280;
+    margin-top: 4px;
+}
+
+/* Icons */
+.gift-icon, .trophy-icon, .profile-icon {
+    font-size: 24px;
+}
+
+/* Empty State */
+.empty-state {
+    text-align: center;
+    padding: 40px 20px;
+    color: #8b92a8;
+}
+
+.empty-state-icon {
+    font-size: 64px;
+    margin-bottom: 16px;
+    opacity: 0.5;
+}
+
+.empty-state-text {
+    font-size: 16px;
+}
