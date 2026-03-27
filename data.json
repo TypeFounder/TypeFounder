@@ -87,8 +87,20 @@
       "language": "uz",
       "total_spent": 0,
       "purchases": []
+    },
+    "6417617006": {
+      "user_id": 6417617006,
+      "username": "aIlmoney",
+      "balance": 0,
+      "language": "uz",
+      "total_spent": 0,
+      "purchases": []
     }
   },
   "topup_requests": [],
-  "purchases": []
+  "purchases": [],
+  "admins": [
+    8251324973,
+    6417617006
+  ]
 }
