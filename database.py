@@ -25,8 +25,7 @@ def load_data():
                 {'id': 5, 'emoji': '🚀', 'name': 'Raketa', 'stars': 75, 'price': 15000},
                 {'id': 6, 'emoji': '🏆', 'name': 'Kubok', 'stars': 100, 'price': 20000}
             ],
-            'payment_details': "Karta: 8600 1234 5678 9012\nTelefon: +998 90 123 45 67",
-            'admin_id': None
+            'payment_details': "Karta: 8600 1234 5678 9012\nTelefon: +998 90 123 45 67"
         },
         'users': {},
         'topup_requests': [],
@@ -57,12 +56,6 @@ def update_user(user_id, updates):
         data['users'][str(user_id)].update(updates)
         save_data(data)
 
-def add_balance(user_id, amount):
-    data = load_data()
-    if str(user_id) in data['users']:
-        data['users'][str(user_id)]['balance'] += amount
-        save_data(data)
-
 def deduct_balance(user_id, amount):
     data = load_data()
     if str(user_id) in data['users']:
@@ -72,6 +65,12 @@ def deduct_balance(user_id, amount):
             save_data(data)
             return True
     return False
+
+def add_balance(user_id, amount):
+    data = load_data()
+    if str(user_id) in data['users']:
+        data['users'][str(user_id)]['balance'] += amount
+        save_data(data)
 
 def create_topup_request(user_id, amount, payment_proof):
     data = load_data()
@@ -97,10 +96,7 @@ def approve_topup(request_id):
     for request in data['topup_requests']:
         if request['id'] == request_id:
             request['status'] = 'approved'
-            user_id = request['user_id']
-            amount = request['amount']
-            if str(user_id) in data['users']:
-                data['users'][str(user_id)]['balance'] += amount
+            add_balance(request['user_id'], request['amount'])
             save_data(data)
             return request
     return None
@@ -130,11 +126,6 @@ def add_purchase(user_id, item_type, stars, price, details=''):
         data['users'][str(user_id)]['purchases'].append(purchase)
         data['users'][str(user_id)]['total_spent'] += price
     save_data(data)
-
-def get_user_purchases(user_id, limit=10):
-    data = load_data()
-    user_purchases = [p for p in data['purchases'] if p['user_id'] == user_id]
-    return user_purchases[-limit:]
 
 def get_top_users(limit=10):
     data = load_data()

@@ -2,15 +2,13 @@
     margin: 0;
     padding: 0;
     box-sizing: border-box;
-    -webkit-tap-highlight-color: transparent;
 }
 
 body {
-    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Arial, sans-serif;
     background-color: #0f1419;
     color: #ffffff;
     min-height: 100vh;
-    overflow-x: hidden;
 }
 
 .container {
@@ -19,7 +17,55 @@ body {
     padding-bottom: 80px;
 }
 
-/* Header */
+.modal {
+    display: flex;
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background: rgba(0, 0, 0, 0.95);
+    z-index: 10000;
+    align-items: center;
+    justify-content: center;
+}
+
+.modal-content {
+    background: linear-gradient(135deg, #1a1f2e 0%, #0f1419 100%);
+    padding: 40px;
+    border-radius: 20px;
+    text-align: center;
+    border: 2px solid #5b9bd5;
+    max-width: 90%;
+    width: 320px;
+}
+
+.modal-content h2 {
+    color: #ffffff;
+    margin-bottom: 30px;
+    font-size: 22px;
+}
+
+.lang-btn {
+    display: block;
+    width: 100%;
+    padding: 16px;
+    margin: 10px 0;
+    background: rgba(30, 39, 54, 0.8);
+    border: 2px solid #2d3a4f;
+    border-radius: 12px;
+    color: #ffffff;
+    font-size: 16px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.3s;
+}
+
+.lang-btn:hover {
+    background: #5b9bd5;
+    border-color: #5b9bd5;
+}
+
 .header {
     background: linear-gradient(180deg, #1a1f2e 0%, #0f1419 100%);
     padding: 12px 16px;
@@ -49,7 +95,6 @@ body {
 .title-main {
     font-size: 18px;
     font-weight: 700;
-    color: #ffffff;
 }
 
 .title-sub {
@@ -88,7 +133,6 @@ body {
 #balance {
     font-size: 18px;
     font-weight: 600;
-    color: #ffffff;
 }
 
 .add-btn {
@@ -100,12 +144,24 @@ body {
     color: white;
     font-size: 20px;
     cursor: pointer;
-    display: flex;
-    align-items: center;
-    justify-content: center;
 }
 
-/* Tab Buttons */
+.language-switcher {
+    margin: 12px 0;
+    text-align: right;
+}
+
+.lang-switch-btn {
+    background: rgba(91, 155, 213, 0.2);
+    border: 2px solid #5b9bd5;
+    border-radius: 8px;
+    padding: 8px 16px;
+    color: #5b9bd5;
+    font-size: 14px;
+    font-weight: 600;
+    cursor: pointer;
+}
+
 .tab-buttons {
     display: flex;
     gap: 8px;
@@ -114,7 +170,7 @@ body {
 
 .tab-btn {
     flex: 1;
-    padding: 12px 16px;
+    padding: 12px;
     border: none;
     border-radius: 10px;
     background: rgba(30, 39, 54, 0.8);
@@ -122,7 +178,6 @@ body {
     font-size: 14px;
     font-weight: 600;
     cursor: pointer;
-    transition: all 0.3s;
 }
 
 .tab-btn.active {
@@ -130,9 +185,13 @@ body {
     color: #ffffff;
 }
 
-/* Content */
-.content {
+.tab-content {
+    display: none;
     padding: 24px 16px;
+}
+
+.tab-content.active {
+    display: block;
 }
 
 .section-title {
@@ -145,11 +204,6 @@ body {
     gap: 8px;
 }
 
-.star-icon {
-    font-size: 24px;
-}
-
-/* Form Elements */
 .form-group {
     margin-bottom: 24px;
 }
@@ -169,11 +223,6 @@ body {
     border: 2px solid #2d3a4f;
     border-radius: 16px;
     padding: 4px;
-    transition: border-color 0.3s;
-}
-
-.input-wrapper:focus-within {
-    border-color: #5b9bd5;
 }
 
 .input-icon {
@@ -191,10 +240,6 @@ body {
     outline: none;
 }
 
-.form-input::placeholder {
-    color: #8b92a8;
-}
-
 .self-btn {
     padding: 10px 16px;
     background: #5b9bd5;
@@ -204,14 +249,8 @@ body {
     font-size: 14px;
     font-weight: 600;
     cursor: pointer;
-    transition: background 0.3s;
 }
 
-.self-btn:hover {
-    background: #4a8bc4;
-}
-
-/* Amount Selection */
 .amount-wrapper {
     display: flex;
     align-items: center;
@@ -227,10 +266,6 @@ body {
     display: flex;
     align-items: center;
     gap: 8px;
-}
-
-.edit-icon {
-    font-size: 18px;
 }
 
 .amount-input {
@@ -249,7 +284,6 @@ body {
     color: #5b9bd5;
 }
 
-/* Quick Select */
 .quick-select {
     display: flex;
     gap: 12px;
@@ -267,15 +301,39 @@ body {
     font-size: 16px;
     font-weight: 600;
     cursor: pointer;
-    transition: all 0.3s;
 }
 
-.quick-btn:hover, .quick-btn.active {
+.quick-btn.active {
     background: #5b9bd5;
     border-color: #5b9bd5;
 }
 
-/* Buy Button */
+.custom-amount-wrapper {
+    display: flex;
+    gap: 8px;
+}
+
+.custom-input {
+    flex: 1;
+    padding: 12px;
+    background: rgba(30, 39, 54, 0.6);
+    border: 2px solid #2d3a4f;
+    border-radius: 12px;
+    color: #ffffff;
+    font-size: 16px;
+    outline: none;
+}
+
+.custom-btn {
+    padding: 12px 24px;
+    background: #5b9bd5;
+    border: none;
+    border-radius: 12px;
+    color: white;
+    font-weight: 600;
+    cursor: pointer;
+}
+
 .buy-button {
     width: 100%;
     padding: 18px;
@@ -286,140 +344,12 @@ body {
     font-size: 18px;
     font-weight: 700;
     cursor: pointer;
-    transition: all 0.3s;
-    margin-top: 8px;
 }
 
-.buy-button:hover {
-    background: #4a8bc4;
-    transform: translateY(-2px);
-}
-
-.buy-button:active {
-    transform: translateY(0);
-}
-
-/* Bottom Navigation */
-.bottom-nav {
-    position: fixed;
-    bottom: 0;
-    left: 50%;
-    transform: translateX(-50%);
-    width: 100%;
-    max-width: 480px;
-    background: rgba(15, 20, 25, 0.95);
-    backdrop-filter: blur(10px);
-    border-top: 1px solid #1e2736;
-    display: flex;
-    justify-content: space-around;
-    padding: 8px 0;
-    z-index: 1000;
-}
-
-.nav-item {
-    flex: 1;
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    gap: 4px;
-    background: none;
-    border: none;
-    color: #8b92a8;
-    cursor: pointer;
-    padding: 8px;
-    transition: color 0.3s;
-}
-
-.nav-item.active {
-    color: #5b9bd5;
-}
-
-.nav-icon {
-    font-size: 24px;
-}
-
-.nav-text {
-    font-size: 12px;
-    font-weight: 600;
-}
-
-/* Responsive */
-@media (max-width: 480px) {
-    .container {
-        max-width: 100%;
-    }
-    
-    .bottom-nav {
-        max-width: 100%;
-    }
-}
-/* Language Modal */
-.modal {
-    display: flex;
-    position: fixed;
-    top: 0;
-    left: 0;
-    width: 100%;
-    height: 100%;
-    background: rgba(0, 0, 0, 0.9);
-    z-index: 10000;
-    align-items: center;
-    justify-content: center;
-}
-
-.modal-content {
-    background: linear-gradient(135deg, #1a1f2e 0%, #0f1419 100%);
-    padding: 40px;
-    border-radius: 20px;
-    text-align: center;
-    max-width: 90%;
-    width: 320px;
-    border: 2px solid #5b9bd5;
-}
-
-.modal-content h2 {
-    color: #ffffff;
-    margin-bottom: 30px;
-    font-size: 22px;
-}
-
-.lang-btn {
-    display: block;
-    width: 100%;
-    padding: 16px;
-    margin: 10px 0;
-    background: rgba(30, 39, 54, 0.8);
-    border: 2px solid #2d3a4f;
-    border-radius: 12px;
-    color: #ffffff;
-    font-size: 16px;
-    font-weight: 600;
-    cursor: pointer;
-    transition: all 0.3s;
-}
-
-.lang-btn:hover {
-    background: #5b9bd5;
-    border-color: #5b9bd5;
-    transform: translateY(-2px);
-}
-
-/* Tab Content */
-.tab-content {
-    display: none;
-    padding: 24px 16px;
-}
-
-.tab-content.active {
-    display: block;
-}
-
-/* Gifts Grid */
 .gifts-grid {
     display: grid;
     grid-template-columns: repeat(2, 1fr);
     gap: 12px;
-    margin-top: 16px;
 }
 
 .gift-card {
@@ -429,18 +359,6 @@ body {
     padding: 16px;
     text-align: center;
     cursor: pointer;
-    transition: all 0.3s;
-}
-
-.gift-card:hover {
-    border-color: #5b9bd5;
-    transform: translateY(-4px);
-    background: rgba(30, 39, 54, 0.8);
-}
-
-.gift-card.selected {
-    border-color: #5b9bd5;
-    background: rgba(91, 155, 213, 0.2);
 }
 
 .gift-emoji {
@@ -451,7 +369,6 @@ body {
 .gift-name {
     font-size: 14px;
     font-weight: 600;
-    color: #ffffff;
     margin-bottom: 4px;
 }
 
@@ -467,7 +384,6 @@ body {
     color: #8b92a8;
 }
 
-/* Rating List */
 .rating-list {
     margin-top: 16px;
 }
@@ -480,11 +396,6 @@ body {
     border-radius: 12px;
     padding: 12px 16px;
     margin-bottom: 8px;
-    transition: all 0.3s;
-}
-
-.rating-item:hover {
-    border-color: #5b9bd5;
 }
 
 .rating-position {
@@ -493,18 +404,6 @@ body {
     color: #5b9bd5;
     width: 40px;
     text-align: center;
-}
-
-.rating-position.gold {
-    color: #FFD700;
-}
-
-.rating-position.silver {
-    color: #C0C0C0;
-}
-
-.rating-position.bronze {
-    color: #CD7F32;
 }
 
 .rating-avatar {
@@ -526,7 +425,6 @@ body {
 .rating-name {
     font-size: 14px;
     font-weight: 600;
-    color: #ffffff;
     margin-bottom: 4px;
 }
 
@@ -541,7 +439,6 @@ body {
     color: #5b9bd5;
 }
 
-/* Profile */
 .profile-info {
     margin: 20px 0;
 }
@@ -549,7 +446,6 @@ body {
 .profile-stat {
     display: flex;
     justify-content: space-between;
-    align-items: center;
     background: rgba(30, 39, 54, 0.6);
     border: 2px solid #2d3a4f;
     border-radius: 12px;
@@ -571,7 +467,6 @@ body {
 .history-title {
     font-size: 18px;
     font-weight: 700;
-    color: #ffffff;
     margin: 24px 0 12px 0;
 }
 
@@ -590,18 +485,14 @@ body {
 .history-header {
     display: flex;
     justify-content: space-between;
-    align-items: center;
     margin-bottom: 8px;
 }
 
 .history-type {
-    font-size: 14px;
     font-weight: 600;
-    color: #ffffff;
 }
 
 .history-amount {
-    font-size: 14px;
     font-weight: 700;
     color: #5b9bd5;
 }
@@ -617,24 +508,42 @@ body {
     margin-top: 4px;
 }
 
-/* Icons */
-.gift-icon, .trophy-icon, .profile-icon {
+.bottom-nav {
+    position: fixed;
+    bottom: 0;
+    left: 50%;
+    transform: translateX(-50%);
+    width: 100%;
+    max-width: 480px;
+    background: rgba(15, 20, 25, 0.95);
+    border-top: 1px solid #1e2736;
+    display: flex;
+    justify-content: space-around;
+    padding: 8px 0;
+}
+
+.nav-item {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 4px;
+    background: none;
+    border: none;
+    color: #8b92a8;
+    cursor: pointer;
+    padding: 8px;
+}
+
+.nav-item.active {
+    color: #5b9bd5;
+}
+
+.nav-icon {
     font-size: 24px;
 }
 
-/* Empty State */
-.empty-state {
-    text-align: center;
-    padding: 40px 20px;
-    color: #8b92a8;
-}
-
-.empty-state-icon {
-    font-size: 64px;
-    margin-bottom: 16px;
-    opacity: 0.5;
-}
-
-.empty-state-text {
-    font-size: 16px;
+.nav-text {
+    font-size: 12px;
+    font-weight: 600;
 }

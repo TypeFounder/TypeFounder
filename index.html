@@ -2,27 +2,21 @@
 <html lang="uz">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Uz Give</title>
     <script src="https://telegram.org/js/telegram-web-app.js"></script>
     <link rel="stylesheet" href="style.css">
 </head>
 <body>
-    <!-- Language Selection Modal -->
     <div id="languageModal" class="modal">
         <div class="modal-content">
             <h2>Выберите язык / Tilni tanlang</h2>
-            <button class="lang-btn" onclick="selectLanguage('ru')">
-                🇷 Русский
-            </button>
-            <button class="lang-btn" onclick="selectLanguage('uz')">
-                🇺🇿 O'zbekcha
-            </button>
+            <button class="lang-btn" onclick="selectLanguage('ru')">🇷 Русский</button>
+            <button class="lang-btn" onclick="selectLanguage('uz')">🇺🇿 O'zbekcha</button>
         </div>
     </div>
 
     <div class="container">
-        <!-- Header -->
         <div class="header">
             <div class="header-top">
                 <button class="close-btn" onclick="closeApp()">Close</button>
@@ -42,7 +36,6 @@
                 </div>
             </div>
 
-            <!-- Language Switcher -->
             <div class="language-switcher">
                 <button onclick="toggleLanguage()" class="lang-switch-btn">
                     🌐 <span id="currentLangText">UZ</span>
@@ -50,25 +43,25 @@
             </div>
             
             <div class="tab-buttons">
-                <button class="tab-btn active" data-tab="stars" onclick="switchTab('stars')">Stars olish</button>
+                <button class="tab-btn active" data-tab="stars" onclick="switchTab('stars')">Stars</button>
                 <button class="tab-btn" data-tab="gift" onclick="switchTab('gift')">Gift</button>
-                <button class="tab-btn" data-tab="rating" onclick="switchTab('rating')">Reyting</button>
+                <button class="tab-btn" data-tab="rating" onclick="switchTab('rating')">Rating</button>
+                <button class="tab-btn" data-tab="profile" onclick="switchTab('profile')">Profile</button>
             </div>
         </div>
 
-        <!-- Stars Tab -->
         <div id="starsTab" class="tab-content active">
             <div class="section-title">
                 <span class="star-icon">⭐</span>
-                <span id="starsTitle">Telegram Stars sotib olish</span>
+                <span id="starsTitle">Telegram Stars</span>
             </div>
 
             <div class="form-group">
                 <label class="form-label" id="recipientLabel">Qabul qiluvchi</label>
                 <div class="input-wrapper">
                     <span class="input-icon">👤</span>
-                    <input type="text" id="username" class="form-input" placeholder="Username kiriting">
-                    <button class="self-btn" id="selfBtn" onclick="setSelf()">O'zim uchun</button>
+                    <input type="text" id="username" class="form-input" placeholder="Username">
+                    <button class="self-btn" onclick="setSelf()">O'zim</button>
                 </div>
             </div>
 
@@ -82,7 +75,7 @@
                     <div class="price-display" id="priceDisplay">10 000 so'm</div>
                 </div>
 
-                <div class="quick-select" id="starsQuickSelect">
+                <div class="quick-select">
                     <button class="quick-btn active" onclick="selectStars(50)">50</button>
                     <button class="quick-btn" onclick="selectStars(75)">75</button>
                     <button class="quick-btn" onclick="selectStars(100)">100</button>
@@ -92,39 +85,32 @@
             </div>
 
             <div class="form-group">
-                <label class="form-label">Yoki o'z miqdoringizni kiriting</label>
+                <label class="form-label">Yoki o'z miqdoringiz</label>
                 <div class="custom-amount-wrapper">
-                    <input type="number" id="customStarsAmount" class="custom-amount-input" placeholder="Masalan: 150">
-                    <button class="custom-amount-btn" onclick="setCustomStars()">Qo'shish</button>
+                    <input type="number" id="customStars" class="custom-input" placeholder="150">
+                    <button class="custom-btn" onclick="setCustomStars()">OK</button>
                 </div>
             </div>
 
-            <button class="buy-button" id="buyBtn" onclick="buyStars()">Sotib olish</button>
+            <button class="buy-button" onclick="buyStars()">Sotib olish</button>
         </div>
 
-        <!-- Gift Tab -->
         <div id="giftTab" class="tab-content">
             <div class="section-title">
                 <span class="gift-icon">🎁</span>
-                <span id="giftTitle">Telegram sovg'alar</span>
+                <span id="giftTitle">Sovg'alar</span>
             </div>
-            <div class="gifts-grid" id="giftsGrid">
-                <!-- Gifts will be loaded here -->
-            </div>
+            <div class="gifts-grid" id="giftsGrid"></div>
         </div>
 
-        <!-- Rating Tab -->
         <div id="ratingTab" class="tab-content">
             <div class="section-title">
                 <span class="trophy-icon">🏆</span>
-                <span id="ratingTitle">Top foydalanuvchilar</span>
+                <span id="ratingTitle">Top</span>
             </div>
-            <div class="rating-list" id="ratingList">
-                <!-- Rating will be loaded here -->
-            </div>
+            <div class="rating-list" id="ratingList"></div>
         </div>
 
-        <!-- Profile Tab -->
         <div id="profileTab" class="tab-content">
             <div class="section-title">
                 <span class="profile-icon">👤</span>
@@ -133,39 +119,36 @@
             
             <div class="profile-info">
                 <div class="profile-stat">
-                    <span class="stat-label" id="totalSpent">Jami sarflangan</span>
+                    <span class="stat-label">Jami</span>
                     <span class="stat-value" id="totalSpentValue">0 so'm</span>
                 </div>
                 <div class="profile-stat">
-                    <span class="stat-label" id="totalPurchases">Xaridlar soni</span>
+                    <span class="stat-label">Xaridlar</span>
                     <span class="stat-value" id="totalPurchasesValue">0</span>
                 </div>
             </div>
 
-            <div class="history-title" id="historyTitle">Xaridlar tarixi</div>
-            <div class="history-list" id="historyList">
-                <!-- History will be loaded here -->
-            </div>
+            <div class="history-title">Tarix</div>
+            <div class="history-list" id="historyList"></div>
         </div>
     </div>
 
-    <!-- Bottom Navigation -->
     <div class="bottom-nav">
         <button class="nav-item active" onclick="navTo('menu')">
             <span class="nav-icon">🏠</span>
-            <span class="nav-text" id="navMenu">Menyu</span>
+            <span class="nav-text">Menu</span>
         </button>
         <button class="nav-item" onclick="navTo('gift')">
             <span class="nav-icon">🎁</span>
-            <span class="nav-text" id="navGift">Gift</span>
+            <span class="nav-text">Gift</span>
         </button>
         <button class="nav-item" onclick="navTo('rating')">
             <span class="nav-icon">🏆</span>
-            <span class="nav-text" id="navRating">Reyting</span>
+            <span class="nav-text">Rating</span>
         </button>
         <button class="nav-item" onclick="navTo('profile')">
             <span class="nav-icon">👤</span>
-            <span class="nav-text" id="navProfile">Profil</span>
+            <span class="nav-text">Profile</span>
         </button>
     </div>
 
