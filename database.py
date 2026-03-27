@@ -10,6 +10,7 @@ def load_data():
             return json.load(f)
     return {
         'admin_settings': {
+            'star_rate': 200,  # Цена за 1 звезду
             'star_prices': {
                 50: 10000,
                 75: 14000,
@@ -85,6 +86,7 @@ def create_topup_request(user_id, amount, payment_proof, username='Не указ
     }
     data['topup_requests'].append(request)
     save_data(data)
+    print(f"✅ Topup request created: {request}")  # Лог для отладки
     return request
 
 def get_pending_topups():
@@ -137,6 +139,7 @@ def update_admin_settings(settings):
     data = load_data()
     data['admin_settings'].update(settings)
     save_data(data)
+    print(f"✅ Admin settings updated: {settings}")  # Лог для отладки
 
 def get_admin_settings():
     data = load_data()

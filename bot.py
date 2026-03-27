@@ -50,7 +50,7 @@ async def admin_panel(callback: types.CallbackQuery):
         return
     
     builder = InlineKeyboardBuilder()
-    builder.button(text="💰 Цены на звёзды", callback_data="admin_stars")
+    builder.button(text="💰 Курс звёзд", callback_data="admin_star_rate")
     builder.button(text="🎁 Подарки", callback_data="admin_gifts")
     builder.button(text="💳 Реквизиты", callback_data="admin_payment")
     builder.button(text="⏳ Заявки", callback_data="admin_topups")
@@ -63,26 +63,32 @@ async def admin_panel(callback: types.CallbackQuery):
         parse_mode="HTML"
     )
 
-@dp.callback_query(F.data == "admin_stars")
-async def admin_stars(callback: types.CallbackQuery):
+@dp.callback_query(F.data == "admin_star_rate")
+async def admin_star_rate(callback: types.CallbackQuery):
     settings = get_admin_settings()
-    text = "💰 <b>Цены на звёзды:</b>\n\n"
-    for stars, price in sorted(settings['star_prices'].items()):
-        text += f"⭐ {stars} stars - {price:,} so'm\n"
+    rate = settings.get('star_rate', 200)
+    
+    text = f"💰 <b>Курс звёзд:</b>\n\n"
+    text += f"1 звезда = {rate:,} so'm\n\n"
+    text += f"<b>Примеры:</b>\n"
+    text += f"50 звёзд = {50 * rate:,} so'm\n"
+    text += f"100 звёзд = {100 * rate:,} so'm\n"
+    text += f"500 звёзд = {500 * rate:,} so'm"
     
     builder = InlineKeyboardBuilder()
-    builder.button(text="✏️ Изменить", callback_data="admin_change_price")
+    builder.button(text="✏️ Изменить курс", callback_data="admin_change_rate")
     builder.button(text="🔙 Назад", callback_data="admin_panel")
     builder.adjust(1)
     
     await callback.message.edit_text(text, reply_markup=builder.as_markup(), parse_mode="HTML")
 
-@dp.callback_query(F.data == "admin_change_price")
-async def admin_change_price(callback: types.CallbackQuery):
+@dp.callback_query(F.data == "admin_change_rate")
+async def admin_change_rate(callback: types.CallbackQuery):
     await callback.message.answer(
-        "💰 <b>Изменение цены</b>\n\n"
-        "Отправьте: <code>количество цена</code>\n"
-        "Пример: <code>50 12000</code>",
+        "💰 <b>Изменение курса</b>\n\n"
+        "Отправьте цену за 1 звезду (в сумах)\n\n"
+        "Пример: <code>200</code> (значит 1 звезда = 200 so'm)\n"
+        "Пример: <code>150</code> (значит 1 звезда = 150 so'm)",
         parse_mode="HTML"
     )
     await callback.answer()
@@ -196,19 +202,20 @@ async def handle_text(message: Message):
         return
     
     try:
-        parts = message.text.split()
-        if len(parts) == 2:
-            stars = int(parts[0])
-            price = int(parts[1])
+        # Проверяем, это число (курс) или текст (реквизиты)
+        if message.text.isdigit():
+            # Это курс звёзд
+            rate = int(message.text)
             settings = get_admin_settings()
-            settings['star_prices'][stars] = price
-            update_admin_settings({'star_prices': settings['star_prices']})
-            await message.answer(f"✅ {stars} stars = {price:,} so'm")
+            settings['star_rate'] = rate
+            update_admin_settings({'star_rate': rate})
+            await message.answer(f"✅ Курс обновлён: 1 звезда = {rate:,} so'm")
         else:
+            # Это реквизиты
             update_admin_settings({'payment_details': message.text})
             await message.answer("✅ Реквизиты обновлены!")
-    except:
-        pass
+    except Exception as e:
+        logger.error(f"Error in handle_text: {e}")
 
 @dp.message(F.web_app_data)
 async def process_webapp_data(message: Message):
@@ -229,12 +236,16 @@ async def process_webapp_data(message: Message):
         amount = data.get('amount', 0)
         proof = data.get('proof', 'Не предоставлен')
         
+        logger.info(f"Creating topup request: user={message.from_user.id}, amount={amount}, username={username}, proof={proof}")
+        
         request = create_topup_request(
             message.from_user.id,
             amount,
             proof,
             username
         )
+        
+        logger.info(f"Topup request created: {request}")
         
         settings = get_admin_settings()
         
@@ -251,6 +262,8 @@ async def process_webapp_data(message: Message):
             f"Выберите действие:",
             parse_mode="HTML"
         )
+        
+        logger.info(f"Topup request sent to admin {ADMIN_ID}")
         
         # Подтверждение пользователю
         await message.answer(
