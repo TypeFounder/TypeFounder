@@ -599,22 +599,28 @@ function switchTab(tab) {
     const btnEl = document.querySelector(`[data-tab="${tab}"]`);
     if (btnEl) btnEl.classList.add('active');
     
-    // УБРАЛ ЗАЯВКИ - больше не загружаем
-    // if (tab === 'requests') {
-    //     loadUserRequests();
-    // }
-    
-    navTo(tab);
+    // Обновляем навигацию БЕЗ рекурсии
+    updateNavigation(tab);
 }
 
-function navTo(page) {
+function updateNavigation(activeTab) {
     document.querySelectorAll('.nav-item').forEach(item => item.classList.remove('active'));
-    const activeItem = event?.target?.closest('.nav-item');
-    if (activeItem) activeItem.classList.add('active');
     
-    if (page === 'menu') switchTab('stars');
-    else if (['gift', 'rating', 'profile'].includes(page)) switchTab(page);
-    // УБРАЛ ЗАЯВКИ - больше нет вкладки requests
+    // Находим соответствующую кнопку навигации
+    const navMap = {
+        'stars': 0,
+        'gift': 1,
+        'rating': 2,
+        'profile': 3
+    };
+    
+    const navIndex = navMap[activeTab];
+    if (navIndex !== undefined) {
+        const navItems = document.querySelectorAll('.nav-item');
+        if (navItems[navIndex]) {
+            navItems[navIndex].classList.add('active');
+        }
+    }
 }
 
 function addBalance() {
