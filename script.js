@@ -570,4 +570,116 @@ function buyPremium() {
     
     tg.showAlert("✅ Telegram Premium активирован!\n\n💰 " + premiumPrice.toLocaleString() + " so'm");
 }
+
+// Загрузка заявок пользователя
+async function loadUserRequests() {
+    const requestsList = document.getElementById('requestsList');
+    
+    try {
+        tg.sendData(JSON.stringify({
+            type: 'get_user_requests',
+            timestamp: new Date().toISOString()
+        }));
+        
+        window.addEventListener('message', (event) => {
+            if (event.data && typeof event.data === 'string' && event.data.startsWith('USER_REQUESTS:')) {
+                const requestsData = JSON.parse(event.data.replace('USER_REQUESTS:', ''));
+                displayRequests(requestsData);
+            }
+        });
+        
+    } catch (error) {
+        console.error('Error loading requests:', error);
+        requestsList.innerHTML = '<div style="text-align:center;padding:40px;color:#F44336">Ошибка загрузки</div>';
+    }
+}
+
+function displayRequests(requests) {
+    const requestsList = document.getElementById('requestsList');
+    
+    if (!requests || requests.length === 0) {
+        requestsList.innerHTML = `
+            <div style="text-align: center; padding: 40px; color: #8b92a8;">
+                <div style="font-size: 48px; margin-bottom: 16px;">📭</div>
+                <div>Нет заявок</div>
+            </div>
+        `;
+        return;
+    }
+    
+    requests.reverse();
+    
+    let html = '';
+    requests.forEach(req => {
+        const statusClass = req.status;
+        const statusText = {
+            'pending': '⏳ Ожидает',
+            'approved': '✅ Одобрена',
+            'rejected': '❌ Отклонена'
+        }[req.status] || req.status;
+        
+        const date = new Date(req.created_at).toLocaleString('ru-RU');
+        
+        html += `
+            <div class="request-card">
+                <div class="request-header">
+                    <span class="request-id">#${req.id}</span>
+                    <span class="request-amount">${req.amount.toLocaleString()} so'm</span>
+                </div>
+                <div class="request-status ${statusClass}">${statusText}</div>
+                <div class="request-proof">
+                    📄 Чек: ${req.payment_proof || 'Не загружен'}
+                </div>
+                <div class="request-date">🕐 ${date}</div>
+                ${req.status === 'pending' ? `
+                    <button class="upload-proof-btn" onclick="uploadProof(${req.id})">
+                        📸 Загрузить чек
+                    </button>
+                ` : ''}
+            </div>
+        `;
+    });
+    
+    requestsList.innerHTML = html;
+}
+
+function uploadProof(requestId) {
+    tg.showAlert(
+        "📸 Загрузка чека\n\n" +
+        "Отправьте фото/скриншот чека боту в личные сообщения.\n\n" +
+        "Чек будет автоматически привязан к заявке #" + requestId
+    );
+}
+
+function buyPremium() {
+    const premiumPrice = 50000;
+    
+    if (userBalance < premiumPrice) {
+        tg.showAlert("❌ Недостаточно средств!\n\nПополните баланс.");
+        return;
+    }
+    
+    tg.sendData(JSON.stringify({
+        type: 'premium',
+        price: premiumPrice,
+        timestamp: new Date().toISOString()
+    }));
+    
+    tg.showAlert("✅ Telegram Premium активирован!\n\n💰 " + premiumPrice.toLocaleString() + " so'm");
+}
+
+function switchTab(tab) {
+    document.querySelectorAll('.tab-content').forEach(t => t.classList.remove('active'));
+    document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+    
+    document.getElementById(tab + 'Tab')?.classList.add('active');
+    document.querySelector(`[data-tab="${tab}"]`)?.classList.add('active');
+    
+    if (tab === 'requests') {
+        loadUserRequests();
+    }
+    
+    navTo(tab);
+}
+
 tg.ready();

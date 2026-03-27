@@ -346,6 +346,53 @@ async def admin_stats(callback: types.CallbackQuery):
     )
     await callback.answer()
 
+@dp.message(F.photo)
+async def handle_payment_proof(message: Message):
+    """Обработка загруженных чеков"""
+    logger.info(f"📸 Получено фото от {message.from_user.id}")
+    
+    photo = message.photo[-1]
+    
+    data = load_all_data()
+    
+    for request in reversed(data.get('topup_requests', [])):
+        if request['user_id'] == message.from_user.id and request['status'] == 'pending':
+            request['payment_proof'] = 'Фото загружено'
+            request['proof_photo_id'] = photo.file_id
+            save_all_data(data)
+            
+            await message.answer(
+                "✅ Чек получен!\n\n"
+                f"Заявка #{request['id']} обновлена.\n"
+                "Ожидайте подтверждения админа."
+            )
+            
+            admin_list = [ADMIN_ID]
+            if os.path.exists(DATA_FILE):
+                with open(DATA_FILE, 'r', encoding='utf-8') as f:
+                    data_json = json.load(f)
+                    admin_list.extend(data_json.get('admins', []))
+            
+            for admin_id in set(admin_list):
+                try:
+                    await bot.send_photo(
+                        admin_id,
+                        photo=photo.file_id,
+                        caption=(
+                            f"💰 <b>Чек для заявки # {request['id']}</b>\n\n"
+                            f"👤 @{request['username']}\n"
+                            f"💵 {request['amount']:,} so'm\n"
+                            f"📄 Чек: Фото загружено"
+                        ),
+                        parse_mode="HTML"
+                    )
+                except Exception as e:
+                    logger.error(f"Failed to send proof to admin {admin_id}: {e}")
+            
+            return
+    
+    await message.answer("❌ Не найдена активная заявка.\nСначала создайте заявку на пополнение.")
+
 @dp.message(F.text)
 async def handle_text(message: Message):
     is_admin_user = (message.from_user.id == ADMIN_ID or await is_admin(message.from_user.id))
@@ -404,6 +451,27 @@ async def process_webapp_data(message: Message):
             await message.answer(settings.get('payment_details', 'Not set'))
             return
         
+        if data.get('type') == 'get_user_requests':
+            user_requests = []
+            data_file = 'data.json'
+            if os.path.exists(data_file):
+                with open(data_file, 'r', encoding='utf-8') as f:
+                    all_data = json.load(f)
+                    for req in all_data.get('topup_requests', []):
+                        if req['user_id'] == message.from_user.id:
+                            user_requests.append({
+                                'id': req['id'],
+                                'amount': req['amount'],
+                                'status': req['status'],
+                                'created_at': req['created_at'],
+                                'payment_proof': req.get('payment_proof', 'Не загружен')
+                            })
+            
+            await message.answer(
+                f"USER_REQUESTS:{json.dumps(user_requests)}"
+            )
+            return
+        
         if data.get('type') == 'topup_request':
             username = data.get('username', 'Не указан')
             amount = data.get('amount', 0)
@@ -429,18 +497,19 @@ async def process_webapp_data(message: Message):
                         f"💵 <b>Сумма:</b> {amount:,} so'm\n"
                         f"📄 <b>Чек:</b> {proof}\n"
                         f"⏰ <b>Время:</b> {datetime.now().strftime('%d.%m.%Y %H:%M')}\n\n"
-                        f"Реквизиты:\n{settings.get('payment_details', 'Not set')}",
+                        f"Реквизиты:\n{settings.get('payment_details', 'Not set')}\n\n"
+                        f"<i>📸 Отправьте фото чека боту для подтверждения</i>",
                         parse_mode="HTML"
                     )
                 except Exception as e:
                     logger.error(f"Failed to send to admin {admin_id}: {e}")
             
             await message.answer(
-                f"✅ <b>Заявка отправлена!</b>\n\n"
+                f"✅ <b>Заявка # {request['id']} создана!</b>\n\n"
                 f"💵 Сумма: {amount:,} so'm\n"
-                f"👤 Username: @{username}\n"
-                f"📄 Чек: {proof}\n\n"
-                f"Ожидайте подтверждения админа.",
+                f"👤 Username: @{username}\n\n"
+                f"<b>📸 Следующий шаг:</b>\n"
+                f"Отправьте фото/скриншот чека боту в личные сообщения",
                 parse_mode="HTML"
             )
             return

@@ -51,14 +51,55 @@
             transform: translateY(-2px);
             box-shadow: 0 8px 20px rgba(91, 155, 213, 0.4);
         }
+        .request-card {
+            background: rgba(30, 39, 54, 0.8);
+            border: 1px solid #2d3a4f;
+            border-radius: 12px;
+            padding: 16px;
+            margin-bottom: 12px;
+        }
+        .request-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 12px;
+        }
+        .request-id { font-size: 14px; color: #8b92a8; }
+        .request-amount { font-size: 18px; font-weight: 700; color: #5b9bd5; }
+        .request-status {
+            display: inline-block;
+            padding: 4px 12px;
+            border-radius: 6px;
+            font-size: 12px;
+            font-weight: 600;
+            margin-bottom: 8px;
+        }
+        .request-status.pending { background: rgba(255, 193, 7, 0.2); color: #FFC107; }
+        .request-status.approved { background: rgba(76, 175, 80, 0.2); color: #4CAF50; }
+        .request-status.rejected { background: rgba(244, 67, 54, 0.2); color: #F44336; }
+        .request-proof { font-size: 13px; color: #8b92a8; margin-top: 8px; padding-top: 8px; border-top: 1px solid #2d3a4f; }
+        .request-date { font-size: 12px; color: #5b9bd5; margin-top: 4px; }
+        .upload-proof-btn {
+            width: 100%;
+            padding: 12px;
+            background: rgba(91, 155, 213, 0.2);
+            border: 1px dashed #5b9bd5;
+            border-radius: 8px;
+            color: #5b9bd5;
+            font-size: 14px;
+            cursor: pointer;
+            margin-top: 12px;
+            transition: all 0.3s;
+        }
+        .upload-proof-btn:hover { background: rgba(91, 155, 213, 0.3); }
     </style>
 </head>
 <body>
     <div id="languageModal" class="modal">
         <div class="modal-content">
             <h2>Выберите язык / Tilni tanlang</h2>
-            <button class="lang-btn" onclick="selectLanguage('ru')">🇷🇺 Русский</button>
-            <button class="lang-btn" onclick="selectLanguage('uz')">🇺🇿 O'zbekcha</button>
+            <button class="lang-btn" onclick="selectLanguage('ru')">🇷 Русский</button>
+            <button class="lang-btn" onclick="selectLanguage('uz')">🇺 O'zbekcha</button>
         </div>
     </div>
 
@@ -97,6 +138,7 @@
                 <button class="tab-btn active" data-tab="stars" onclick="switchTab('stars')">Stars</button>
                 <button class="tab-btn" data-tab="gift" onclick="switchTab('gift')">Gift</button>
                 <button class="tab-btn" data-tab="premium" onclick="switchTab('premium')">💎 Premium</button>
+                <button class="tab-btn" data-tab="requests" onclick="switchTab('requests')">📋 Заявки</button>
                 <button class="tab-btn" data-tab="rating" onclick="switchTab('rating')">Rating</button>
                 <button class="tab-btn" data-tab="profile" onclick="switchTab('profile')">Profile</button>
             </div>
@@ -166,6 +208,18 @@
                 </div>
                 <div class="premium-price" id="premiumPrice">50 000 so'm</div>
                 <button class="buy-premium-btn" onclick="buyPremium()">Купить Premium</button>
+            </div>
+        </div>
+
+        <div id="requestsTab" class="tab-content">
+            <div class="section-title">
+                <span class="requests-icon">📋</span>
+                <span>Мои заявки</span>
+            </div>
+            <div id="requestsList" style="padding: 16px;">
+                <div style="text-align: center; padding: 40px; color: #8b92a8;">
+                    Загрузка заявок...
+                </div>
             </div>
         </div>
 
