@@ -67,7 +67,7 @@
     "698519246": {
       "user_id": 698519246,
       "username": "aztype",
-      "balance": 0,
+      "balance": 487883,
       "language": "uz",
       "total_spent": 0,
       "purchases": []
@@ -97,7 +97,30 @@
       "purchases": []
     }
   },
-  "topup_requests": [],
+  "topup_requests": [
+    {
+      "id": 1,
+      "user_id": 698519246,
+      "username": "aztype",
+      "amount": 483883,
+      "payment_proof": "Фото загружено",
+      "proof_photo_id": "AgACAgUAAxkBAAOQacblFv4WGgktKqSQpWF2g3UbA6EAAsQMaxtOgzhWNZowK5Og3z8BAAMCAAN5AAM6BA",
+      "status": "approved",
+      "created_at": "2026-03-27T23:14:14.577185",
+      "approved_at": "2026-03-27T23:30:11.982309"
+    },
+    {
+      "id": 2,
+      "user_id": 698519246,
+      "username": "aztype",
+      "amount": 4000,
+      "payment_proof": "Фото загружено",
+      "proof_photo_id": "AgACAgUAAxkBAAOQacblFv4WGgktKqSQpWF2g3UbA6EAAsQMaxtOgzhWNZowK5Og3z8BAAMCAAN5AAM6BA",
+      "status": "approved",
+      "created_at": "2026-03-27T23:20:52.221466",
+      "approved_at": "2026-03-27T23:24:35.677097"
+    }
+  ],
   "purchases": [],
   "admins": [
     8251324973,

@@ -547,3 +547,19 @@ body {
     font-size: 12px;
     font-weight: 600;
 }
+
+.refresh-btn {
+    background: rgba(91, 155, 213, 0.2);
+    border: 1px solid rgba(91, 155, 213, 0.3);
+    border-radius: 8px;
+    padding: 8px 12px;
+    margin-left: 8px;
+    cursor: pointer;
+    font-size: 16px;
+    transition: all 0.3s;
+}
+
+.refresh-btn:hover {
+    background: rgba(91, 155, 213, 0.3);
+    transform: rotate(180deg);
+}

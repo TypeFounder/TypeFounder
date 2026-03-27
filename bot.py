@@ -5,7 +5,7 @@ import os
 from datetime import datetime
 from aiogram import Bot, Dispatcher, F, types
 from aiogram.filters import Command, CommandStart
-from aiogram.types import WebAppInfo, Message, FSInputFile
+from aiogram.types import WebAppInfo, Message
 from aiogram.utils.keyboard import InlineKeyboardBuilder
 from config import BOT_TOKEN, ADMIN_ID, WEBAPP_URL
 from database import (
@@ -28,7 +28,7 @@ def load_all_data():
             with open(DATA_FILE, 'r', encoding='utf-8') as f:
                 return json.load(f)
     except Exception as e:
-        logger.error(f"Error loading  {e}")
+        logger.error(f"Error loading data: {e}")
     return {'admins': []}
 
 def save_all_data(data):
@@ -36,7 +36,7 @@ def save_all_data(data):
         with open(DATA_FILE, 'w', encoding='utf-8') as f:
             json.dump(data, f, ensure_ascii=False, indent=2)
     except Exception as e:
-        logger.error(f"Error saving  {e}")
+        logger.error(f"Error saving data: {e}")
 
 async def is_admin(user_id):
     data = load_all_data()
@@ -120,20 +120,17 @@ async def handle_payment_proof(message: Message):
     
     try:
         photo = message.photo[-1]
-        user = get_user(message.from_user.id)
         username = message.from_user.username or 'Не указан'
         
-        # Загружаем данные
         data = load_all_data()
         
-        # Создаём заявку на пополнение
         request_id = len(data.get('topup_requests', [])) + 1
         
         request = {
             'id': request_id,
             'user_id': message.from_user.id,
             'username': username,
-            'amount': 0,  # Будет указано админом
+            'amount': 0,
             'payment_proof': 'Фото загружено',
             'proof_photo_id': photo.file_id,
             'status': 'pending',
@@ -149,12 +146,10 @@ async def handle_payment_proof(message: Message):
         await message.answer(
             f"✅ <b>Чек получен!</b>\n\n"
             f"Заявка #{request_id} создана.\n"
-            f"Ожидайте подтверждения админа.\n\n"
-            f"После одобрения баланс пополнится на указанную сумму.",
+            f"Ожидайте подтверждения админа.",
             parse_mode="HTML"
         )
         
-        # Отправляем чек ВСЕМ админам
         admin_list = [ADMIN_ID]
         if os.path.exists(DATA_FILE):
             with open(DATA_FILE, 'r', encoding='utf-8') as f:
@@ -206,10 +201,8 @@ async def approve_handler(message: Message):
         
         logger.info(f"🔍 Approving request {request_id} with amount {amount}")
         
-        # Загружаем данные ОДИН РАЗ
         data = load_all_data()
         
-        # Ищем заявку
         request = None
         for req in data.get('topup_requests', []):
             if req['id'] == request_id:
@@ -220,10 +213,8 @@ async def approve_handler(message: Message):
             await message.answer(f"❌ Заявка #{request_id} не найдена")
             return
         
-        # Получаем пользователя
         user_id_str = str(request['user_id'])
         
-        # Проверяем что пользователь существует
         if user_id_str not in data['users']:
             data['users'][user_id_str] = {
                 'user_id': request['user_id'],
@@ -234,12 +225,9 @@ async def approve_handler(message: Message):
                 'purchases': []
             }
         
-        # Обновляем баланс ПРЯМО В data
         old_balance = data['users'][user_id_str].get('balance', 0)
         data['users'][user_id_str]['balance'] = old_balance + amount
-        data['users'][user_id_str]['total_spent'] = data['users'][user_id_str].get('total_spent', 0)
         
-        # Обновляем статус заявки
         for req in data['topup_requests']:
             if req['id'] == request_id:
                 req['status'] = 'approved'
@@ -247,10 +235,8 @@ async def approve_handler(message: Message):
                 req['approved_at'] = datetime.now().isoformat()
                 break
         
-        # СОХРАНЯЕМ ВСЁ СРАЗУ
         save_all_data(data)
         
-        # Проверяем что сохранилось
         verify_data = load_all_data()
         new_balance = verify_data['users'][user_id_str]['balance']
         
@@ -264,7 +250,6 @@ async def approve_handler(message: Message):
             parse_mode="HTML"
         )
         
-        # Отправляем пользователю
         try:
             await bot.send_photo(
                 request['user_id'],
@@ -290,34 +275,6 @@ async def approve_handler(message: Message):
     except Exception as e:
         logger.error(f"Error in approve_handler: {e}", exc_info=True)
         await message.answer(f"❌ Ошибка: {e}")
-        
-@dp.message(F.text == "/check")
-async def check_balance(message: Message):
-    """Проверка баланса"""
-    data = load_all_data()
-    user_id_str = str(message.from_user.id)
-    
-    if user_id_str in data['users']:
-        balance = data['users'][user_id_str]['balance']
-    else:
-        balance = 0
-    
-    await message.answer(
-        f"📊 <b>Ваш баланс:</b> {balance:,} so'm\n"
-        f"👤 <b>ID:</b> {message.from_user.id}",
-        parse_mode="HTML"
-    )
-        
-@dp.message(F.text == "/check_balance")
-async def check_balance(message: Message):
-    """Проверка баланса (для отладки)"""
-    user = get_user(message.from_user.id)
-    await message.answer(
-        f"📊 <b>Ваш баланс:</b> {user['balance']:,} so'm\n"
-        f"👤 <b>ID:</b> {message.from_user.id}\n"
-        f"📝 <b>Username:</b> @{message.from_user.username or 'Не указан'}",
-        parse_mode="HTML"
-    )
 
 @dp.message(F.text.startswith('/reject'))
 async def reject_handler(message: Message):
@@ -335,7 +292,6 @@ async def reject_handler(message: Message):
         
         data = load_all_data()
         
-        # Ищем заявку
         request = None
         for req in data.get('topup_requests', []):
             if req['id'] == request_id:
@@ -346,7 +302,6 @@ async def reject_handler(message: Message):
             await message.answer(f"❌ Заявка #{request_id} не найдена")
             return
         
-        # Обновляем статус
         for req in data['topup_requests']:
             if req['id'] == request_id:
                 req['status'] = 'rejected'
@@ -367,6 +322,23 @@ async def reject_handler(message: Message):
     except Exception as e:
         logger.error(f"Error in reject_handler: {e}")
         await message.answer(f"❌ Ошибка: {e}")
+
+@dp.message(F.text == "/check")
+async def check_balance(message: Message):
+    """Проверка баланса"""
+    data = load_all_data()
+    user_id_str = str(message.from_user.id)
+    
+    if user_id_str in data['users']:
+        balance = data['users'][user_id_str]['balance']
+    else:
+        balance = 0
+    
+    await message.answer(
+        f"📊 <b>Ваш баланс:</b> {balance:,} so'm\n"
+        f"👤 <b>ID:</b> {message.from_user.id}",
+        parse_mode="HTML"
+    )
 
 @dp.callback_query(F.data == "admin_panel")
 async def admin_panel(callback: types.CallbackQuery):
@@ -686,6 +658,12 @@ async def process_webapp_data(message: Message):
         data = json.loads(message.web_app_data.data)
         logger.info(f"WebApp data received: {data}")
         
+        if data.get('type') == 'get_user_balance':
+            user = get_user(message.from_user.id)
+            await message.answer(f"USER_BALANCE:{user['balance']}")
+            logger.info(f"Sent balance {user['balance']} to user {message.from_user.id}")
+            return
+        
         if data.get('type') == 'get_payment_details':
             settings = get_admin_settings()
             await message.answer(settings.get('payment_details', 'Not set'))
@@ -734,7 +712,7 @@ async def process_webapp_data(message: Message):
             else:
                 await message.answer("❌ Недостаточно средств\nПополните баланс")
     except Exception as e:
-        logger.error(f"Error in process_webapp_ {e}")
+        logger.error(f"Error in process_webapp_data: {e}")
 
 async def main():
     logger.info("Starting bot...")

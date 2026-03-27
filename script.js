@@ -97,8 +97,55 @@ let currentLang = 'uz';
 let selectedStars = 50;
 let userBalance = 0;
 let userData = { history: [], totalSpent: 0, totalPurchases: 0 };
-let paymentDetails = 'Karta: 8600 1234 5678 9012\nTelefon: +998 90 123 45 67';
 
+// ============================================
+// 🔄 ЗАГРУЗКА БАЛАНСА ПРИ ОТКРЫТИИ MINI APP
+// ============================================
+async function loadUserBalance() {
+    try {
+        tg.sendData(JSON.stringify({
+            type: 'get_user_balance',
+            timestamp: new Date().toISOString()
+        }));
+        console.log('Balance request sent');
+    } catch (error) {
+        console.error('Error loading balance:', error);
+    }
+}
+
+// ============================================
+// 📨 СЛУШАЕМ ОТВЕТЫ ОТ БОТА
+// ============================================
+window.addEventListener('message', (event) => {
+    if (event.data && typeof event.data === 'string') {
+        // Обновление баланса
+        if (event.data.startsWith('USER_BALANCE:')) {
+            const balance = parseInt(event.data.replace('USER_BALANCE:', ''));
+            userBalance = balance;
+            updateBalance();
+            console.log('✅ Balance updated:', balance);
+        }
+        
+        // Заявки пользователя
+        if (event.data.startsWith('USER_REQUESTS:')) {
+            const requestsData = JSON.parse(event.data.replace('USER_REQUESTS:', ''));
+            displayRequests(requestsData);
+        }
+        
+        // Реквизиты
+        if (event.data.startsWith('PAYMENT_DETAILS:')) {
+            const details = event.data.replace('PAYMENT_DETAILS:', '');
+            const detailsEl = document.getElementById('paymentDetailsDisplay');
+            if (detailsEl) {
+                detailsEl.textContent = details;
+            }
+        }
+    }
+});
+
+// ============================================
+// 🎯 ИНИЦИАЛИЗАЦИЯ
+// ============================================
 document.addEventListener('DOMContentLoaded', () => {
     const savedLang = localStorage.getItem('language');
     if (savedLang) {
@@ -112,6 +159,7 @@ document.addEventListener('DOMContentLoaded', () => {
     }
     
     loadData();
+    loadUserBalance(); // Загружаем баланс сразу
 });
 
 function selectLanguage(lang) {
@@ -145,7 +193,6 @@ function initApp() {
 function updateTexts() {
     const t = translations[currentLang];
     
-    // Обновляем все текстовые элементы
     const textElements = {
         'starsTitle': t.starsTitle,
         'recipientLabel': t.recipientLabel,
@@ -191,8 +238,19 @@ function updateTexts() {
     tg.MainButton.setText(t.buyBtn);
 }
 
+// ============================================
+// 💰 ОБНОВЛЕНИЕ ОТОБРАЖЕНИЯ БАЛАНСА
+// ============================================
 function updateBalance() {
-    document.getElementById('balance').textContent = `${userBalance.toLocaleString()} so'm`;
+    const balanceEl = document.getElementById('balance');
+    if (balanceEl) {
+        balanceEl.textContent = `${userBalance.toLocaleString()} so'm`;
+    }
+    
+    const totalSpentEl = document.getElementById('totalSpentValue');
+    if (totalSpentEl) {
+        totalSpentEl.textContent = `${userBalance.toLocaleString()} so'm`;
+    }
 }
 
 function selectStars(amount) {
@@ -255,8 +313,6 @@ function buyStars() {
 function showTopupModal(amount) {
     const t = translations[currentLang];
     const user = tg.initDataUnsafe.user;
-    
-    // Реквизиты по умолчанию
     const defaultDetails = "Karta: 8600 1234 5678 9012\nTelefon: +998 90 123 45 67";
     
     const modal = document.createElement('div');
@@ -305,22 +361,10 @@ function showTopupModal(amount) {
     
     document.body.appendChild(modal);
     
-    // Запрашиваем актуальные реквизиты у бота
     tg.sendData(JSON.stringify({
         type: 'get_payment_details',
         timestamp: new Date().toISOString()
     }));
-    
-    // Слушаем ответ от бота
-    window.addEventListener('message', (event) => {
-        if (event.data && typeof event.data === 'string' && event.data.startsWith('PAYMENT_DETAILS:')) {
-            const details = event.data.replace('PAYMENT_DETAILS:', '');
-            const detailsEl = document.getElementById('paymentDetailsDisplay');
-            if (detailsEl) {
-                detailsEl.textContent = details;
-            }
-        }
-    });
 }
 
 function proceedToPaymentProof() {
@@ -436,6 +480,7 @@ function loadGifts() {
     const grid = document.getElementById('giftsGrid');
     if (!grid) return;
     grid.innerHTML = '';
+    
     gifts.forEach(gift => {
         const card = document.createElement('div');
         card.className = 'gift-card';
@@ -473,6 +518,7 @@ function loadRating() {
         { name: 'Vali', spent: 180000, purchases: 10 },
         { name: 'Sardor', spent: 120000, purchases: 8 }
     ];
+    
     list.innerHTML = '';
     rating.forEach((user, i) => {
         const item = document.createElement('div');
@@ -493,11 +539,13 @@ function loadRating() {
 function loadProfile() {
     document.getElementById('totalSpentValue').textContent = `${userData.totalSpent.toLocaleString()} so'm`;
     document.getElementById('totalPurchasesValue').textContent = userData.totalPurchases;
+    
     const list = document.getElementById('historyList');
     if (userData.history.length === 0) {
         list.innerHTML = `<div style="text-align:center;padding:40px;color:#8b92a8">${translations[currentLang].noHistory}</div>`;
         return;
     }
+    
     list.innerHTML = '';
     userData.history.slice().reverse().slice(0, 10).forEach(item => {
         const div = document.createElement('div');
@@ -534,16 +582,28 @@ function loadData() {
 function switchTab(tab) {
     document.querySelectorAll('.tab-content').forEach(t => t.classList.remove('active'));
     document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
-    document.getElementById(tab + 'Tab').classList.add('active');
-    document.querySelector(`[data-tab="${tab}"]`).classList.add('active');
+    
+    const tabEl = document.getElementById(tab + 'Tab');
+    if (tabEl) tabEl.classList.add('active');
+    
+    const btnEl = document.querySelector(`[data-tab="${tab}"]`);
+    if (btnEl) btnEl.classList.add('active');
+    
+    // Загружаем заявки при открытии вкладки
+    if (tab === 'requests') {
+        loadUserRequests();
+    }
+    
     navTo(tab);
 }
 
 function navTo(page) {
     document.querySelectorAll('.nav-item').forEach(item => item.classList.remove('active'));
-    event.target.closest('.nav-item').classList.add('active');
+    const activeItem = event?.target?.closest('.nav-item');
+    if (activeItem) activeItem.classList.add('active');
+    
     if (page === 'menu') switchTab('stars');
-    else if (['gift', 'rating', 'profile'].includes(page)) switchTab(page);
+    else if (['gift', 'rating', 'profile', 'requests'].includes(page)) switchTab(page);
 }
 
 function addBalance() {
@@ -571,7 +631,9 @@ function buyPremium() {
     tg.showAlert("✅ Telegram Premium активирован!\n\n💰 " + premiumPrice.toLocaleString() + " so'm");
 }
 
-// Загрузка заявок пользователя
+// ============================================
+// 📋 ЗАГРУЗКА ЗАЯВОК ПОЛЬЗОВАТЕЛЯ
+// ============================================
 async function loadUserRequests() {
     const requestsList = document.getElementById('requestsList');
     
@@ -580,17 +642,11 @@ async function loadUserRequests() {
             type: 'get_user_requests',
             timestamp: new Date().toISOString()
         }));
-        
-        window.addEventListener('message', (event) => {
-            if (event.data && typeof event.data === 'string' && event.data.startsWith('USER_REQUESTS:')) {
-                const requestsData = JSON.parse(event.data.replace('USER_REQUESTS:', ''));
-                displayRequests(requestsData);
-            }
-        });
-        
     } catch (error) {
         console.error('Error loading requests:', error);
-        requestsList.innerHTML = '<div style="text-align:center;padding:40px;color:#F44336">Ошибка загрузки</div>';
+        if (requestsList) {
+            requestsList.innerHTML = '<div style="text-align:center;padding:40px;color:#F44336">Ошибка загрузки</div>';
+        }
     }
 }
 
@@ -649,37 +705,6 @@ function uploadProof(requestId) {
         "Отправьте фото/скриншот чека боту в личные сообщения.\n\n" +
         "Чек будет автоматически привязан к заявке #" + requestId
     );
-}
-
-function buyPremium() {
-    const premiumPrice = 50000;
-    
-    if (userBalance < premiumPrice) {
-        tg.showAlert("❌ Недостаточно средств!\n\nПополните баланс.");
-        return;
-    }
-    
-    tg.sendData(JSON.stringify({
-        type: 'premium',
-        price: premiumPrice,
-        timestamp: new Date().toISOString()
-    }));
-    
-    tg.showAlert("✅ Telegram Premium активирован!\n\n💰 " + premiumPrice.toLocaleString() + " so'm");
-}
-
-function switchTab(tab) {
-    document.querySelectorAll('.tab-content').forEach(t => t.classList.remove('active'));
-    document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
-    
-    document.getElementById(tab + 'Tab')?.classList.add('active');
-    document.querySelector(`[data-tab="${tab}"]`)?.classList.add('active');
-    
-    if (tab === 'requests') {
-        loadUserRequests();
-    }
-    
-    navTo(tab);
 }
 
 tg.ready();
