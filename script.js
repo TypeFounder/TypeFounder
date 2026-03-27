@@ -24,20 +24,9 @@ const translations = {
         insufficientBalance: 'Недостаточно средств',
         topupTitle: 'Пополнение',
         topupAmount: 'Сумма',
-        topupProof: 'Чек',
-        topupSubmit: 'Отправить',
-        topupSuccess: 'Заявка отправлена',
         cancel: 'Отмена',
         sent: 'Отправил',
-        lang: 'RU',
-        menu: 'Меню',
-        gift: 'Подарки',
-        rating: 'Рейтинг',
-        profile: 'Профиль',
-        stars: 'Stars',
-        jami: 'Всего',
-        xaridlar: 'Покупок',
-        tarix: 'История'
+        lang: 'RU'
     },
     uz: {
         starsTitle: 'Telegram Stars',
@@ -59,20 +48,9 @@ const translations = {
         insufficientBalance: "Mablag' yetarli emas",
         topupTitle: "Balansni to'ldirish",
         topupAmount: 'Summa',
-        topupProof: 'Chek',
-        topupSubmit: "Yuborish",
-        topupSuccess: "Zayavka yuborildi",
         cancel: 'Bekor qilish',
         sent: "Yubordim",
-        lang: 'UZ',
-        menu: 'Menyu',
-        gift: 'Gift',
-        rating: 'Reyting',
-        profile: 'Profil',
-        stars: 'Stars',
-        jami: 'Jami',
-        xaridlar: 'Xaridlar',
-        tarix: 'Tarix'
+        lang: 'UZ'
     }
 };
 
@@ -97,46 +75,40 @@ let currentLang = 'uz';
 let selectedStars = 50;
 let userBalance = 0;
 let userData = { history: [], totalSpent: 0, totalPurchases: 0 };
-let paymentDetails = 'Karta: 8600 1234 5678 9012\nTelefon: +998 90 123 45 67';
 
-// Загрузка баланса
-function loadUserBalance() {
-    console.log('📡 Requesting balance...');
-    tg.sendData(JSON.stringify({
-        type: 'get_user_balance',
-        timestamp: new Date().toISOString()
-    }));
-}
-
-// Слушаем ответы от бота
+// ============================================
+// 📬 СЛУШАЕМ ОТВЕТЫ ОТ БОТА (ДО ЗАГРУЗКИ)
+// ============================================
 window.addEventListener('message', function(event) {
-    console.log('📨 Received:', event.data);
+    console.log('📨 Получено сообщение:', event.data);
     
     if (event.data && typeof event.data === 'string') {
+        // Обновление баланса
         if (event.data.startsWith('USER_BALANCE:')) {
             const balance = parseInt(event.data.replace('USER_BALANCE:', ''));
             userBalance = balance;
             updateBalance();
-            console.log('✅ Balance updated to:', balance);
+            console.log('✅ Баланс обновлён:', balance);
         }
         
+        // Реквизиты
         if (event.data.startsWith('PAYMENT_DETAILS:')) {
             const details = event.data.replace('PAYMENT_DETAILS:', '');
-            paymentDetails = details;
             const detailsEl = document.getElementById('paymentDetailsDisplay');
             if (detailsEl) {
                 detailsEl.textContent = details;
+                console.log('✅ Реквизиты обновлены');
             }
-        }
-        
-        if (event.data.startsWith('USER_REQUESTS:')) {
-            const requestsData = JSON.parse(event.data.replace('USER_REQUESTS:', ''));
-            displayRequests(requestsData);
         }
     }
 });
 
+// ============================================
+// 🎯 ИНИЦИАЛИЗАЦИЯ
+// ============================================
 document.addEventListener('DOMContentLoaded', function() {
+    console.log('🚀 DOM загружен');
+    
     const savedLang = localStorage.getItem('language');
     if (savedLang) {
         currentLang = savedLang;
@@ -147,11 +119,13 @@ document.addEventListener('DOMContentLoaded', function() {
         const modal = document.getElementById('languageModal');
         if (modal) modal.style.display = 'flex';
     }
+    
     loadData();
     loadUserBalance();
 });
 
 function selectLanguage(lang) {
+    console.log('🌐 Выбор языка:', lang);
     currentLang = lang;
     localStorage.setItem('language', lang);
     const modal = document.getElementById('languageModal');
@@ -181,19 +155,15 @@ function initApp() {
 
 function updateTexts() {
     const t = translations[currentLang];
-    const textElements = {
+    const elements = {
         'starsTitle': t.starsTitle,
         'recipientLabel': t.recipientLabel,
         'amountLabel': t.amountLabel,
         'giftTitle': t.giftTitle,
         'ratingTitle': t.ratingTitle,
-        'profileTitle': t.profileTitle,
-        'navMenu': t.menu,
-        'navGift': t.gift,
-        'navRating': t.rating,
-        'navProfile': t.profile
+        'profileTitle': t.profileTitle
     };
-    for (const [id, text] of Object.entries(textElements)) {
+    for (const [id, text] of Object.entries(elements)) {
         const el = document.getElementById(id);
         if (el) el.textContent = text;
     }
@@ -201,25 +171,45 @@ function updateTexts() {
     if (usernameInput) usernameInput.placeholder = t.usernamePlaceholder;
     const selfBtn = document.getElementById('selfBtn');
     if (selfBtn) selfBtn.textContent = t.selfBtn;
-    const customLabel = document.querySelectorAll('.form-label')[2];
-    if (customLabel) customLabel.textContent = t.customLabel;
     const customInput = document.getElementById('customStars');
     if (customInput) customInput.placeholder = t.customPlaceholder;
     const customBtn = document.querySelector('.custom-btn');
     if (customBtn) customBtn.textContent = t.customBtn;
-    const totalSpentLabel = document.querySelectorAll('.stat-label')[0];
-    if (totalSpentLabel) totalSpentLabel.textContent = t.jami;
-    const totalPurchasesLabel = document.querySelectorAll('.stat-label')[1];
-    if (totalPurchasesLabel) totalPurchasesLabel.textContent = t.xaridlar;
-    const historyTitle = document.querySelector('.history-title');
-    if (historyTitle) historyTitle.textContent = t.tarix;
     tg.MainButton.setText(t.buyBtn);
 }
 
+// ============================================
+// 💰 ОБНОВЛЕНИЕ БАЛАНСА
+// ============================================
 function updateBalance() {
     const balanceEl = document.getElementById('balance');
     if (balanceEl) {
         balanceEl.textContent = userBalance.toLocaleString() + " so'm";
+        console.log('💰 Баланс на экране:', userBalance);
+    }
+}
+
+// ============================================
+// 🔄 ЗАГРУЗКА БАЛАНСА
+// ============================================
+function loadUserBalance() {
+    console.log('📡 Запрос баланса у бота...');
+    tg.sendData(JSON.stringify({
+        type: 'get_user_balance',
+        timestamp: new Date().toISOString()
+    }));
+}
+
+// ============================================
+// 🔄 КНОПКА ОБНОВЛЕНИЯ БАЛАНСА
+// ============================================
+function refreshBalance() {
+    console.log('🔄 Ручное обновление баланса...');
+    loadUserBalance();
+    const btn = document.querySelector('.refresh-btn');
+    if (btn) {
+        btn.style.transform = 'rotate(360deg)';
+        setTimeout(function() { btn.style.transform = 'rotate(0deg)'; }, 500);
     }
 }
 
@@ -276,7 +266,6 @@ function buyStars() {
         stars: selectedStars,
         username: username,
         price: price,
-        currency: 'UZS',
         timestamp: new Date().toISOString()
     }));
     tg.showAlert("✅ Muvaffaqiyatli!\n\n" + selectedStars + " ⭐\n" + price.toLocaleString() + " so'm");
@@ -291,12 +280,11 @@ function showTopupModal(amount) {
         '<h2 style="margin-bottom: 25px;">' + t.topupTitle + '</h2>' +
         '<div style="margin-bottom: 20px;">' +
         '<label style="display: block; margin-bottom: 8px; color: #8b92a8; font-size: 14px;">' + t.topupAmount + ':</label>' +
-        '<input type="number" id="topupAmountInput" value="' + (amount || 10000) + '" style="width: 100%; padding: 12px; background: rgba(30, 39, 54, 0.8); border: 2px solid #2d3a4f; border-radius: 8px; color: #fff; font-size: 18px; font-weight: 600;" placeholder="10000">' +
+        '<input type="number" id="topupAmountInput" value="' + (amount || 10000) + '" style="width: 100%; padding: 12px; background: rgba(30, 39, 54, 0.8); border: 2px solid #2d3a4f; border-radius: 8px; color: #fff; font-size: 18px; font-weight: 600;">' +
         '</div>' +
         '<div style="background: rgba(30, 39, 54, 0.8); padding: 20px; border-radius: 12px; margin-bottom: 20px;">' +
         '<p style="margin-bottom: 10px; color: #8b92a8; font-size: 14px;">Реквизиты для оплаты:</p>' +
-        '<div id="paymentDetailsDisplay" style="background: #0f1419; padding: 15px; border-radius: 8px; font-family: monospace; white-space: pre-wrap; font-size: 14px; line-height: 1.6; min-height: 80px;">' + paymentDetails + '</div>' +
-        '<p style="margin-top: 10px; font-size: 12px; color: #5b9bd5;">💡 Реквизиты обновляются админом</p>' +
+        '<div id="paymentDetailsDisplay" style="background: #0f1419; padding: 15px; border-radius: 8px; font-family: monospace; white-space: pre-wrap; font-size: 14px; line-height: 1.6;">Karta: 8600 1234 5678 9012</div>' +
         '</div>' +
         '<div style="display: flex; gap: 10px;">' +
         '<button class="lang-btn" onclick="this.closest(\'.modal\').remove()" style="background: #2d3a4f; flex: 1;">' + t.cancel + '</button>' +
@@ -308,8 +296,7 @@ function showTopupModal(amount) {
 }
 
 function proceedToPaymentProof() {
-    const amountInput = document.getElementById('topupAmountInput');
-    const amount = parseInt(amountInput.value) || 10000;
+    const amount = parseInt(document.getElementById('topupAmountInput').value) || 10000;
     const modal = document.querySelector('.modal');
     if (modal) modal.remove();
     showPaymentProofModal(amount);
@@ -327,19 +314,16 @@ function showPaymentProofModal(amount) {
     modal.style.display = 'flex';
     modal.innerHTML = '<div class="modal-content" style="max-width: 90%; width: 450px;">' +
         '<h2 style="margin-bottom: 25px;">Подтверждение оплаты</h2>' +
-        '<div style="background: rgba(91, 155, 213, 0.2); padding: 15px; border-radius: 12px; margin-bottom: 20px; border: 1px solid #5b9bd5;">' +
+        '<div style="background: rgba(91, 155, 213, 0.2); padding: 15px; border-radius: 12px; margin-bottom: 20px;">' +
         '<p style="color: #5b9bd5; font-size: 18px; font-weight: 700; text-align: center;">Сумма: ' + amount.toLocaleString() + " so'm</p>" +
         '</div>' +
         '<div style="margin-bottom: 15px;">' +
         '<label style="display: block; margin-bottom: 8px; color: #8b92a8; font-size: 14px;">Ваш username:</label>' +
-        '<input type="text" id="topupUsername" value="' + (user.username || '') + '" style="width: 100%; padding: 12px; background: rgba(30, 39, 54, 0.8); border: 2px solid #2d3a4f; border-radius: 8px; color: #fff; font-size: 16px;" placeholder="@username">' +
+        '<input type="text" id="topupUsername" value="' + (user.username || '') + '" style="width: 100%; padding: 12px; background: rgba(30, 39, 54, 0.8); border: 2px solid #2d3a4f; border-radius: 8px; color: #fff; font-size: 16px;">' +
         '</div>' +
         '<div style="margin-bottom: 20px;">' +
-        '<label style="display: block; margin-bottom: 8px; color: #8b92a8; font-size: 14px;">Чек/скриншот оплаты (номер транзакции):</label>' +
+        '<label style="display: block; margin-bottom: 8px; color: #8b92a8; font-size: 14px;">Чек/скриншот оплаты:</label>' +
         '<input type="text" id="topupProof" style="width: 100%; padding: 12px; background: rgba(30, 39, 54, 0.8); border: 2px solid #2d3a4f; border-radius: 8px; color: #fff; font-size: 16px;" placeholder="Например: TX123456">' +
-        '</div>' +
-        '<div style="background: rgba(255, 193, 7, 0.1); padding: 15px; border-radius: 8px; margin-bottom: 20px; border-left: 3px solid #FFC107;">' +
-        '<p style="color: #FFC107; font-size: 13px; margin: 0;">⚠️ После нажатия "Отправить", заявка будет отправлена админу. После подтверждения баланс пополнится.</p>' +
         '</div>' +
         '<div style="display: flex; gap: 10px;">' +
         '<button class="lang-btn" onclick="this.closest(\'.modal\').remove()" style="background: #2d3a4f; flex: 1;">' + t.cancel + '</button>' +
@@ -350,16 +334,10 @@ function showPaymentProofModal(amount) {
 }
 
 function submitTopupRequest(amount) {
-    const usernameInput = document.getElementById('topupUsername');
-    const proofInput = document.getElementById('topupProof');
-    const username = usernameInput.value.trim() || 'Не указан';
-    const proof = proofInput.value.trim() || 'Не предоставлен';
+    const username = document.getElementById('topupUsername').value.trim() || 'Не указан';
+    const proof = document.getElementById('topupProof').value.trim() || 'Не предоставлен';
     if (!username || username === '@') {
-        tg.showAlert('Пожалуйста, введите ваш username!');
-        return;
-    }
-    if (!proof || proof.length < 3) {
-        tg.showAlert('Пожалуйста, введите номер чека/транзакции!');
+        tg.showAlert('Введите username!');
         return;
     }
     tg.sendData(JSON.stringify({
@@ -371,7 +349,7 @@ function submitTopupRequest(amount) {
     }));
     const modal = document.querySelector('.modal');
     if (modal) modal.remove();
-    tg.showAlert('✅ Заявка отправлена!\n\n💰 Сумма: ' + amount.toLocaleString() + " so'm\n👤 Username: @" + username + '\n📄 Чек: ' + proof + '\n\nОжидайте подтверждения админа.');
+    tg.showAlert('✅ Заявка отправлена!\n\nОжидайте подтверждения админа.');
 }
 
 function loadGifts() {
@@ -403,30 +381,12 @@ function buyGift(gift) {
         price: gift.price,
         timestamp: new Date().toISOString()
     }));
-    tg.showAlert("✅ Muvaffaqiyatli!\n\n" + gift.name[currentLang] + "\n" + gift.price.toLocaleString() + " so'm");
 }
 
 function loadRating() {
     const list = document.getElementById('ratingList');
     if (!list) return;
-    const rating = [
-        { name: 'Ali', spent: 250000, purchases: 15 },
-        { name: 'Vali', spent: 180000, purchases: 10 },
-        { name: 'Sardor', spent: 120000, purchases: 8 }
-    ];
-    list.innerHTML = '';
-    rating.forEach(function(user, i) {
-        const item = document.createElement('div');
-        item.className = 'rating-item';
-        item.innerHTML = '<div class="rating-position">#' + (i + 1) + '</div>' +
-            '<div class="rating-avatar">' + user.name[0] + '</div>' +
-            '<div class="rating-info">' +
-            '<div class="rating-name">' + user.name + '</div>' +
-            '<div class="rating-stats">' + user.purchases + ' xarid</div>' +
-            '</div>' +
-            '<div class="rating-value">' + user.spent.toLocaleString() + " so'm</div>";
-        list.appendChild(item);
-    });
+    list.innerHTML = '<div class="rating-item"><div class="rating-position">#1</div><div class="rating-avatar">A</div><div class="rating-info"><div class="rating-name">Ali</div><div class="rating-stats">15 xarid</div></div><div class="rating-value">250,000 so\'m</div></div>';
 }
 
 function loadProfile() {
@@ -444,12 +404,7 @@ function loadProfile() {
     userData.history.slice().reverse().slice(0, 10).forEach(function(item) {
         const div = document.createElement('div');
         div.className = 'history-item';
-        div.innerHTML = '<div class="history-header">' +
-            '<div class="history-type">' + (item.type === 'stars' ? '⭐ Stars' : '🎁 ' + item.details) + '</div>' +
-            '<div class="history-amount">' + item.price.toLocaleString() + " so'm</div>" +
-            '</div>' +
-            '<div class="history-details">' + item.stars + ' ⭐</div>' +
-            '<div class="history-date">' + new Date(item.timestamp).toLocaleString() + '</div>';
+        div.innerHTML = '<div class="history-header"><div class="history-type">' + (item.type === 'stars' ? '⭐ Stars' : '🎁 ' + item.details) + '</div><div class="history-amount">' + item.price.toLocaleString() + " so'm</div></div><div class="history-details">' + item.stars + ' ⭐</div><div class="history-date">' + new Date(item.timestamp).toLocaleString() + '</div>';
         list.appendChild(div);
     });
 }
@@ -515,54 +470,6 @@ function buyPremium() {
         timestamp: new Date().toISOString()
     }));
     tg.showAlert("✅ Telegram Premium активирован!\n\n💰 " + premiumPrice.toLocaleString() + " so'm");
-}
-
-function refreshBalance() {
-    loadUserBalance();
-    const btn = document.querySelector('.refresh-btn');
-    if (btn) {
-        btn.style.transform = 'rotate(360deg)';
-        setTimeout(function() { btn.style.transform = 'rotate(0deg)'; }, 500);
-    }
-}
-
-function displayRequests(requests) {
-    const requestsList = document.getElementById('requestsList');
-    if (!requests || requests.length === 0) {
-        requestsList.innerHTML = '<div style="text-align: center; padding: 40px; color: #8b92a8;"><div style="font-size: 48px; margin-bottom: 16px;">📭</div><div>Нет заявок</div></div>';
-        return;
-    }
-    requests.reverse();
-    let html = '';
-    requests.forEach(function(req) {
-        const statusClass = req.status;
-        const statusText = {
-            'pending': '⏳ Ожидает',
-            'approved': '✅ Одобрена',
-            'rejected': '❌ Отклонена'
-        }[req.status] || req.status;
-        const date = new Date(req.created_at).toLocaleString('ru-RU');
-        html += '<div class="request-card">' +
-            '<div class="request-header"><span class="request-id">#' + req.id + '</span><span class="request-amount">' + req.amount.toLocaleString() + " so'm</span></div>" +
-            '<div class="request-status ' + statusClass + '">' + statusText + '</div>' +
-            '<div class="request-proof">📄 Чек: ' + (req.payment_proof || 'Не загружен') + '</div>' +
-            '<div class="request-date">🕐 ' + date + '</div>' +
-            (req.status === 'pending' ? '<button class="upload-proof-btn" onclick="uploadProof(' + req.id + ')">📸 Загрузить чек</button>' : '') +
-            '</div>';
-    });
-    requestsList.innerHTML = html;
-}
-
-function uploadProof(requestId) {
-    tg.showAlert('📸 Загрузка чека\n\nОтправьте фото/скриншот чека боту в личные сообщения.\n\nЧек будет автоматически привязан к заявке #' + requestId);
-}
-
-function loadUserRequests() {
-    const requestsList = document.getElementById('requestsList');
-    tg.sendData(JSON.stringify({
-        type: 'get_user_requests',
-        timestamp: new Date().toISOString()
-    }));
 }
 
 tg.ready();
