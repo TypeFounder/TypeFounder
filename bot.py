@@ -204,8 +204,9 @@ async def approve_handler(message: Message):
         request_id = int(parts[1])
         amount = int(parts[2])
         
-        logger.info(f"Approving request {request_id} with amount {amount}")
+        logger.info(f"🔍 Approving request {request_id} with amount {amount}")
         
+        # Загружаем данные ОДИН РАЗ
         data = load_all_data()
         
         # Ищем заявку
@@ -219,7 +220,26 @@ async def approve_handler(message: Message):
             await message.answer(f"❌ Заявка #{request_id} не найдена")
             return
         
-        # Обновляем статус
+        # Получаем пользователя
+        user_id_str = str(request['user_id'])
+        
+        # Проверяем что пользователь существует
+        if user_id_str not in data['users']:
+            data['users'][user_id_str] = {
+                'user_id': request['user_id'],
+                'username': request['username'],
+                'balance': 0,
+                'language': 'uz',
+                'total_spent': 0,
+                'purchases': []
+            }
+        
+        # Обновляем баланс ПРЯМО В data
+        old_balance = data['users'][user_id_str].get('balance', 0)
+        data['users'][user_id_str]['balance'] = old_balance + amount
+        data['users'][user_id_str]['total_spent'] = data['users'][user_id_str].get('total_spent', 0)
+        
+        # Обновляем статус заявки
         for req in data['topup_requests']:
             if req['id'] == request_id:
                 req['status'] = 'approved'
@@ -227,21 +247,14 @@ async def approve_handler(message: Message):
                 req['approved_at'] = datetime.now().isoformat()
                 break
         
-        # ПЕРЕД сохранением получаем текущего пользователя
-        user = get_user(request['user_id'])
-        old_balance = user['balance']
-        
-        # Зачисляем баланс
-        add_balance(request['user_id'], amount)
-        
-        # Сохраняем
+        # СОХРАНЯЕМ ВСЁ СРАЗУ
         save_all_data(data)
         
-        # Проверяем что баланс обновился
-        updated_user = get_user(request['user_id'])
-        new_balance = updated_user['balance']
+        # Проверяем что сохранилось
+        verify_data = load_all_data()
+        new_balance = verify_data['users'][user_id_str]['balance']
         
-        logger.info(f"Balance updated: {old_balance} -> {new_balance} (added {amount})")
+        logger.info(f"✅ Balance updated: {old_balance} -> {new_balance} (added {amount})")
         
         await message.answer(
             f"✅ <b>Заявка #{request_id} одобрена!</b>\n\n"
@@ -251,13 +264,11 @@ async def approve_handler(message: Message):
             parse_mode="HTML"
         )
         
-        # Отправляем пользователю красивую картинку
-        success_image = "https://images.unsplash.com/photo-1555445054-8488d04c0d6d?w=800"
-        
+        # Отправляем пользователю
         try:
             await bot.send_photo(
                 request['user_id'],
-                photo=success_image,
+                photo="https://images.unsplash.com/photo-1555445054-8488d04c0d6d?w=800",
                 caption=(
                     f"✅ <b>Пополнение успешно!</b>\n\n"
                     f"💰 <b>Сумма:</b> {amount:,} so'm\n"
@@ -272,14 +283,30 @@ async def approve_handler(message: Message):
                 request['user_id'],
                 f"✅ <b>Пополнение успешно!</b>\n\n"
                 f"💰 <b>Сумма:</b> {amount:,} so'm\n"
-                f"📊 <b>Ваш баланс:</b> {new_balance:,} so'm\n\n"
-                f"Спасибо за использование Uz Give! 🎁",
+                f"📊 <b>Ваш баланс:</b> {new_balance:,} so'm",
                 parse_mode="HTML"
             )
         
     except Exception as e:
         logger.error(f"Error in approve_handler: {e}", exc_info=True)
         await message.answer(f"❌ Ошибка: {e}")
+        
+@dp.message(F.text == "/check")
+async def check_balance(message: Message):
+    """Проверка баланса"""
+    data = load_all_data()
+    user_id_str = str(message.from_user.id)
+    
+    if user_id_str in data['users']:
+        balance = data['users'][user_id_str]['balance']
+    else:
+        balance = 0
+    
+    await message.answer(
+        f"📊 <b>Ваш баланс:</b> {balance:,} so'm\n"
+        f"👤 <b>ID:</b> {message.from_user.id}",
+        parse_mode="HTML"
+    )
         
 @dp.message(F.text == "/check_balance")
 async def check_balance(message: Message):
