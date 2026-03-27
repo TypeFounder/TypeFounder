@@ -420,14 +420,13 @@ function submitTopupRequest(amount) {
     const modal = document.querySelector('.modal');
     if (modal) modal.remove();
     
-    tg.showPopup({
-        title: 'Заявка отправлена!',
-        message: `💰 Сумма: ${amount.toLocaleString()} so'm\n\n` +
-                 `👤 Username: ${username}\n` +
-                 `📄 Чек: ${proof}\n\n` +
-                 `Ожидайте подтверждения админа.`,
-        buttons: [{ id: 'ok', type: 'ok', text: 'Закрыть' }]
-    });
+    tg.showAlert(
+        '✅ <b>Заявка отправлена!</b>\n\n' +
+        '💰 Сумма: ' + amount.toLocaleString() + " so'm\n" +
+        '👤 Username: @' + username + '\n' +
+        '📄 Чек: ' + proof + '\n\n' +
+        'Ожидайте подтверждения админа.'
+    );
 }
 
 function loadGifts() {

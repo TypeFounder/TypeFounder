@@ -307,7 +307,9 @@ async def handle_text(message: Message):
     
     try:
         logger.info(f"Admin message received: {message.text}")
+        logger.info(f"From user: {message.from_user.id}, Admin ID: {ADMIN_ID}")
         
+        # Проверяем, это ID админа (число больше 100000000)
         if message.text.isdigit() and int(message.text) > 100000000:
             admin_id = int(message.text)
             data = load_all_data()
@@ -324,6 +326,7 @@ async def handle_text(message: Message):
                 await message.answer(f"⚠️ Этот пользователь уже админ")
             return
         
+        # Проверяем, это число (курс звёзд)
         if message.text.isdigit():
             rate = int(message.text)
             settings = get_admin_settings()
@@ -332,11 +335,16 @@ async def handle_text(message: Message):
             await message.answer(f"✅ Курс обновлён: 1 звезда = {rate:,} so'm")
         else:
             # Это реквизиты - обновляем напрямую
+            logger.info(f"Updating payment details to: {message.text}")
             data = load_all_data()
             data['admin_settings']['payment_details'] = message.text
             save_all_data(data)
-            logger.info(f"Payment details updated to: {message.text}")
+            logger.info(f"Payment details saved: {data['admin_settings']['payment_details']}")
             await message.answer("✅ Реквизиты обновлены!")
+            
+            # Проверяем что сохранилось
+            check_data = load_all_data()
+            logger.info(f"Verification - Payment details: {check_data['admin_settings']['payment_details']}")
     except Exception as e:
         logger.error(f"Error in handle_text: {e}")
         await message.answer(f"❌ Ошибка: {e}")
