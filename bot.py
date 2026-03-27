@@ -213,46 +213,58 @@ async def handle_text(message: Message):
 @dp.message(F.web_app_data)
 async def process_webapp_data(message: Message):
     data = json.loads(message.web_app_data.data)
+    logger.info(f"WebApp data received: {data}")
     
+    # Запрос реквизитов
     if data.get('type') == 'get_payment_details':
         settings = get_admin_settings()
-        await message.answer(settings['payment_details'])
+        await message.answer(
+            f"PAYMENT_DETAILS:{settings['payment_details']}"
+        )
         return
     
+    # Заявка на пополнение
     if data.get('type') == 'topup_request':
+        username = data.get('username', 'Не указан')
+        amount = data.get('amount', 0)
+        proof = data.get('proof', 'Не предоставлен')
+        
         request = create_topup_request(
             message.from_user.id,
-            data.get('amount'),
-            data.get('proof', 'Не предоставлен'),
-            data.get('username', 'Не указан')
+            amount,
+            proof,
+            username
         )
         
         settings = get_admin_settings()
         
+        # Отправляем заявку админу В ЛС
         await bot.send_message(
             ADMIN_ID,
             f"💰 <b>НОВАЯ ЗАЯВКА # {request['id']}</b>\n\n"
-            f"👤 <b>Пользователь:</b> @{data.get('username', 'Не указан')}\n"
+            f"👤 <b>Пользователь:</b> @{username}\n"
             f"🔢 <b>ID:</b> <code>{message.from_user.id}</code>\n"
-            f"💵 <b>Сумма:</b> {data['amount']:,} so'm\n"
-            f"📄 <b>Чек/транзакция:</b> {data.get('proof', 'Нет')}\n"
+            f"💵 <b>Сумма:</b> {amount:,} so'm\n"
+            f"📄 <b>Чек/транзакция:</b> {proof}\n"
             f"⏰ <b>Время:</b> {datetime.now().strftime('%d.%m.%Y %H:%M')}\n\n"
             f"Реквизиты админа:\n{settings['payment_details']}\n\n"
             f"Выберите действие:",
             parse_mode="HTML"
         )
         
+        # Подтверждение пользователю
         await message.answer(
             f"✅ <b>Заявка отправлена!</b>\n\n"
-            f"💵 Сумма: {data['amount']:,} so'm\n"
-            f"👤 Username: @{data.get('username', 'Не указан')}\n"
-            f"📄 Чек: {data.get('proof', 'Нет')}\n\n"
+            f"💵 Сумма: {amount:,} so'm\n"
+            f"👤 Username: @{username}\n"
+            f"📄 Чек: {proof}\n\n"
             f"Ожидайте подтверждения админа.\n"
             f"После одобрения баланс пополнится автоматически.",
             parse_mode="HTML"
         )
         return
     
+    # Покупка звёзд
     if data.get('type') == 'stars':
         if deduct_balance(message.from_user.id, data['price']):
             add_purchase(message.from_user.id, 'stars', data['stars'], data['price'])
@@ -260,6 +272,7 @@ async def process_webapp_data(message: Message):
         else:
             await message.answer("❌ Недостаточно средств\nПополните баланс")
     
+    # Покупка подарка
     elif data.get('type') == 'gift':
         if deduct_balance(message.from_user.id, data['price']):
             add_purchase(message.from_user.id, 'gift', data['stars'], data['price'], data['gift'])

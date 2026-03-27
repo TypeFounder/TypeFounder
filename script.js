@@ -29,7 +29,15 @@ const translations = {
         topupSuccess: 'Заявка отправлена',
         cancel: 'Отмена',
         sent: 'Отправил',
-        lang: 'RU'
+        lang: 'RU',
+        menu: 'Меню',
+        gift: 'Подарки',
+        rating: 'Рейтинг',
+        profile: 'Профиль',
+        stars: 'Stars',
+        jami: 'Всего',
+        xaridlar: 'Покупок',
+        tarix: 'История'
     },
     uz: {
         starsTitle: 'Telegram Stars',
@@ -56,7 +64,15 @@ const translations = {
         topupSuccess: "Zayavka yuborildi",
         cancel: 'Bekor qilish',
         sent: "Yubordim",
-        lang: 'UZ'
+        lang: 'UZ',
+        menu: 'Menyu',
+        gift: 'Gift',
+        rating: 'Reyting',
+        profile: 'Profil',
+        stars: 'Stars',
+        jami: 'Jami',
+        xaridlar: 'Xaridlar',
+        tarix: 'Tarix'
     }
 };
 
@@ -81,7 +97,7 @@ let currentLang = 'uz';
 let selectedStars = 50;
 let userBalance = 0;
 let userData = { history: [], totalSpent: 0, totalPurchases: 0 };
-let paymentDetails = 'Загрузка...';
+let paymentDetails = 'Karta: 8600 1234 5678 9012\nTelefon: +998 90 123 45 67';
 
 document.addEventListener('DOMContentLoaded', () => {
     const savedLang = localStorage.getItem('language');
@@ -96,15 +112,7 @@ document.addEventListener('DOMContentLoaded', () => {
     }
     
     loadData();
-    loadPaymentDetailsFromBot();
 });
-
-function loadPaymentDetailsFromBot() {
-    tg.sendData(JSON.stringify({
-        type: 'get_payment_details',
-        timestamp: new Date().toISOString()
-    }));
-}
 
 function selectLanguage(lang) {
     currentLang = lang;
@@ -136,28 +144,50 @@ function initApp() {
 
 function updateTexts() {
     const t = translations[currentLang];
-    const elements = {
+    
+    // Обновляем все текстовые элементы
+    const textElements = {
         'starsTitle': t.starsTitle,
         'recipientLabel': t.recipientLabel,
         'amountLabel': t.amountLabel,
         'giftTitle': t.giftTitle,
         'ratingTitle': t.ratingTitle,
-        'profileTitle': t.profileTitle
+        'profileTitle': t.profileTitle,
+        'navMenu': t.menu,
+        'navGift': t.gift,
+        'navRating': t.rating,
+        'navProfile': t.profile
     };
-    for (const [id, text] of Object.entries(elements)) {
+    
+    for (const [id, text] of Object.entries(textElements)) {
         const el = document.getElementById(id);
         if (el) el.textContent = text;
     }
+    
     const usernameInput = document.getElementById('username');
     if (usernameInput) usernameInput.placeholder = t.usernamePlaceholder;
+    
     const selfBtn = document.getElementById('selfBtn');
     if (selfBtn) selfBtn.textContent = t.selfBtn;
-    const customLabel = document.querySelector('.form-group .form-label:last-of-type');
+    
+    const customLabel = document.querySelectorAll('.form-label')[2];
     if (customLabel) customLabel.textContent = t.customLabel;
+    
     const customInput = document.getElementById('customStars');
     if (customInput) customInput.placeholder = t.customPlaceholder;
+    
     const customBtn = document.querySelector('.custom-btn');
     if (customBtn) customBtn.textContent = t.customBtn;
+    
+    const totalSpentLabel = document.querySelectorAll('.stat-label')[0];
+    if (totalSpentLabel) totalSpentLabel.textContent = t.jami;
+    
+    const totalPurchasesLabel = document.querySelectorAll('.stat-label')[1];
+    if (totalPurchasesLabel) totalPurchasesLabel.textContent = t.xaridlar;
+    
+    const historyTitle = document.querySelector('.history-title');
+    if (historyTitle) historyTitle.textContent = t.tarix;
+    
     tg.MainButton.setText(t.buyBtn);
 }
 
@@ -265,7 +295,7 @@ function showTopupModal(amount) {
             
             <div style="background: rgba(30, 39, 54, 0.8); padding: 20px; border-radius: 12px; margin-bottom: 20px;">
                 <p style="margin-bottom: 10px; color: #8b92a8; font-size: 14px;">Реквизиты для оплаты:</p>
-                <div id="paymentDetails" style="background: #0f1419; padding: 15px; border-radius: 8px; 
+                <div id="paymentDetailsDisplay" style="background: #0f1419; padding: 15px; border-radius: 8px; 
                          font-family: monospace; white-space: pre-wrap; font-size: 14px; line-height: 1.6;
                          min-height: 80px;">
                     ${paymentDetails}
