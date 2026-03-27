@@ -256,11 +256,12 @@ function showTopupModal(amount) {
     const t = translations[currentLang];
     const user = tg.initDataUnsafe.user;
     
+    // Реквизиты по умолчанию
+    const defaultDetails = "Karta: 8600 1234 5678 9012\nTelefon: +998 90 123 45 67";
+    
     const modal = document.createElement('div');
     modal.className = 'modal';
     modal.style.display = 'flex';
-    
-    const details = window.paymentDetails || 'Загрузка...';
     
     modal.innerHTML = `
         <div class="modal-content" style="max-width: 90%; width: 450px;">
@@ -280,11 +281,14 @@ function showTopupModal(amount) {
             
             <div style="background: rgba(30, 39, 54, 0.8); padding: 20px; border-radius: 12px; margin-bottom: 20px;">
                 <p style="margin-bottom: 10px; color: #8b92a8; font-size: 14px;">Реквизиты для оплаты:</p>
-                <div style="background: #0f1419; padding: 15px; border-radius: 8px; 
+                <div id="paymentDetailsDisplay" style="background: #0f1419; padding: 15px; border-radius: 8px; 
                          font-family: monospace; white-space: pre-wrap; font-size: 14px; line-height: 1.6;
                          min-height: 80px;">
-                    ${details}
+                    ${defaultDetails}
                 </div>
+                <p style="margin-top: 10px; font-size: 12px; color: #5b9bd5;">
+                    💡 Реквизиты обновляются админом
+                </p>
             </div>
             
             <div style="display: flex; gap: 10px;">
@@ -300,6 +304,23 @@ function showTopupModal(amount) {
     `;
     
     document.body.appendChild(modal);
+    
+    // Запрашиваем актуальные реквизиты у бота
+    tg.sendData(JSON.stringify({
+        type: 'get_payment_details',
+        timestamp: new Date().toISOString()
+    }));
+    
+    // Слушаем ответ от бота
+    window.addEventListener('message', (event) => {
+        if (event.data && typeof event.data === 'string' && event.data.startsWith('PAYMENT_DETAILS:')) {
+            const details = event.data.replace('PAYMENT_DETAILS:', '');
+            const detailsEl = document.getElementById('paymentDetailsDisplay');
+            if (detailsEl) {
+                detailsEl.textContent = details;
+            }
+        }
+    });
 }
 
 function proceedToPaymentProof() {
