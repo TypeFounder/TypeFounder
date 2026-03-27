@@ -88,12 +88,12 @@ def get_pending_topups():
     data = load_data()
     return [r for r in data['topup_requests'] if r['status'] == 'pending']
 
-def approve_topup(request_id):
+def approve_topup(request_id, amount=0):
     data = load_data()
     for request in data['topup_requests']:
         if request['id'] == request_id:
             request['status'] = 'approved'
-            add_balance(request['user_id'], request['amount'])
+            request['amount'] = amount
             save_data(data)
             return request
     return None

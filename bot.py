@@ -5,7 +5,7 @@ import os
 from datetime import datetime
 from aiogram import Bot, Dispatcher, F, types
 from aiogram.filters import Command, CommandStart
-from aiogram.types import WebAppInfo, Message
+from aiogram.types import WebAppInfo, Message, FSInputFile
 from aiogram.utils.keyboard import InlineKeyboardBuilder
 from config import BOT_TOKEN, ADMIN_ID, WEBAPP_URL
 from database import (
@@ -28,7 +28,7 @@ def load_all_data():
             with open(DATA_FILE, 'r', encoding='utf-8') as f:
                 return json.load(f)
     except Exception as e:
-        logger.error(f"Error loading data: {e}")
+        logger.error(f"Error loading  {e}")
     return {'admins': []}
 
 def save_all_data(data):
@@ -36,7 +36,7 @@ def save_all_data(data):
         with open(DATA_FILE, 'w', encoding='utf-8') as f:
             json.dump(data, f, ensure_ascii=False, indent=2)
     except Exception as e:
-        logger.error(f"Error saving data: {e}")
+        logger.error(f"Error saving  {e}")
 
 async def is_admin(user_id):
     data = load_all_data()
@@ -52,6 +52,7 @@ async def cmd_start(message: Message):
     
     builder = InlineKeyboardBuilder()
     builder.button(text="⭐ Открыть Uz Give", web_app=WebAppInfo(url=WEBAPP_URL))
+    builder.button(text="💰 Пополнить баланс", callback_data="topup_balance")
     builder.button(text="💬 Поддержка", callback_data="support")
     
     if message.from_user.id == ADMIN_ID or await is_admin(message.from_user.id):
@@ -79,6 +80,237 @@ async def support_handler(callback: types.CallbackQuery):
         parse_mode="HTML"
     )
     await callback.answer()
+
+@dp.callback_query(F.data == "topup_balance")
+async def topup_balance_handler(callback: types.CallbackQuery):
+    settings = get_admin_settings()
+    payment_details = settings.get('payment_details', 'Реквизиты не настроены')
+    
+    await callback.message.answer(
+        f"💰 <b>Пополнение баланса</b>\n\n"
+        f"<b>Реквизиты для оплаты:</b>\n"
+        f"<code>{payment_details}</code>\n\n"
+        f"<b>Инструкция:</b>\n"
+        f"1️⃣ Переведите нужную сумму\n"
+        f"2️⃣ Нажмите кнопку ниже\n"
+        f"3️⃣ Отправьте чек (фото/скриншот)\n\n"
+        f"После подтверждения админом баланс пополнится!",
+        parse_mode="HTML",
+        reply_markup=InlineKeyboardBuilder().button(
+            text="📸 Отправить чек",
+            callback_data="send_payment_proof"
+        ).adjust(1).as_markup()
+    )
+    await callback.answer()
+
+@dp.callback_query(F.data == "send_payment_proof")
+async def send_payment_proof_handler(callback: types.CallbackQuery):
+    await callback.message.answer(
+        "📸 <b>Отправка чека</b>\n\n"
+        "Отправьте <b>фото/скриншот</b> чека об оплате этим сообщением.\n\n"
+        "<i>Просто отправьте фото, бот автоматически привяжет его к вашей заявке</i>",
+        parse_mode="HTML"
+    )
+    await callback.answer()
+
+@dp.message(F.photo)
+async def handle_payment_proof(message: Message):
+    """Обработка загруженных чеков"""
+    logger.info(f"📸 Получено фото от пользователя {message.from_user.id}")
+    
+    try:
+        photo = message.photo[-1]
+        user = get_user(message.from_user.id)
+        username = message.from_user.username or 'Не указан'
+        
+        # Загружаем данные
+        data = load_all_data()
+        
+        # Создаём заявку на пополнение
+        request_id = len(data.get('topup_requests', [])) + 1
+        
+        request = {
+            'id': request_id,
+            'user_id': message.from_user.id,
+            'username': username,
+            'amount': 0,  # Будет указано админом
+            'payment_proof': 'Фото загружено',
+            'proof_photo_id': photo.file_id,
+            'status': 'pending',
+            'created_at': datetime.now().isoformat()
+        }
+        
+        if 'topup_requests' not in data:
+            data['topup_requests'] = []
+        
+        data['topup_requests'].append(request)
+        save_all_data(data)
+        
+        await message.answer(
+            f"✅ <b>Чек получен!</b>\n\n"
+            f"Заявка #{request_id} создана.\n"
+            f"Ожидайте подтверждения админа.\n\n"
+            f"После одобрения баланс пополнится на указанную сумму.",
+            parse_mode="HTML"
+        )
+        
+        # Отправляем чек ВСЕМ админам
+        admin_list = [ADMIN_ID]
+        if os.path.exists(DATA_FILE):
+            with open(DATA_FILE, 'r', encoding='utf-8') as f:
+                data_json = json.load(f)
+                admin_list.extend(data_json.get('admins', []))
+        
+        for admin_id in set(admin_list):
+            try:
+                await bot.send_photo(
+                    admin_id,
+                    photo=photo.file_id,
+                    caption=(
+                        f"💰 <b>🔔 НОВАЯ ЗАЯВКА # {request_id}</b>\n\n"
+                        f"👤 <b>Пользователь:</b> @{username}\n"
+                        f"🔢 <b>ID:</b> <code>{message.from_user.id}</code>\n"
+                        f"💵 <b>Сумма:</b> <i>(укажите в ответе)</i>\n"
+                        f"📄 <b>Чек:</b> Фото загружено\n"
+                        f"⏰ <b>Время:</b> {datetime.now().strftime('%d.%m.%Y %H:%M')}\n\n"
+                        f"<b>Для одобрения:</b>\n"
+                        f"Отправьте: <code>/approve {request_id} сумма</code>\n"
+                        f"Пример: <code>/approve {request_id} 10000</code>\n\n"
+                        f"<b>Для отклонения:</b>\n"
+                        f"<code>/reject {request_id}</code>"
+                    ),
+                    parse_mode="HTML"
+                )
+                logger.info(f"✅ Чек отправлен админу {admin_id}")
+            except Exception as e:
+                logger.error(f"❌ Не удалось отправить чек админу {admin_id}: {e}")
+        
+    except Exception as e:
+        logger.error(f"❌ Error in handle_payment_proof: {e}")
+        await message.answer("❌ Произошла ошибка. Попробуйте ещё раз.")
+
+@dp.message(F.text.startswith('/approve'))
+async def approve_handler(message: Message):
+    """Одобрение заявки админом"""
+    if message.from_user.id != ADMIN_ID and not await is_admin(message.from_user.id):
+        return
+    
+    try:
+        parts = message.text.split()
+        if len(parts) != 3:
+            await message.answer("❌ Формат: /approve ID СУММА\nПример: /approve 1 10000")
+            return
+        
+        request_id = int(parts[1])
+        amount = int(parts[2])
+        
+        data = load_all_data()
+        
+        # Ищем заявку
+        request = None
+        for req in data.get('topup_requests', []):
+            if req['id'] == request_id:
+                request = req
+                break
+        
+        if not request:
+            await message.answer(f"❌ Заявка #{request_id} не найдена")
+            return
+        
+        # Обновляем статус
+        for req in data['topup_requests']:
+            if req['id'] == request_id:
+                req['status'] = 'approved'
+                req['amount'] = amount
+                req['approved_at'] = datetime.now().isoformat()
+                break
+        
+        # Зачисляем баланс
+        add_balance(request['user_id'], amount)
+        save_all_data(data)
+        
+        await message.answer(
+            f"✅ <b>Заявка #{request_id} одобрена!</b>\n\n"
+            f"💵 Сумма: {amount:,} so'm зачислена\n"
+            f"👤 @{request['username']}"
+        )
+        
+        # Отправляем пользователю красивую картинку
+        success_image = "https://i.imgur.com/success-check.png"  # Замените на свою картинку
+        
+        try:
+            await bot.send_photo(
+                request['user_id'],
+                photo=success_image,
+                caption=(
+                    f"✅ <b>Пополнение успешно!</b>\n\n"
+                    f"💰 <b>Сумма:</b> {amount:,} so'm\n"
+                    f"📊 <b>Ваш баланс:</b> {get_user(request['user_id'])['balance']:,} so'm\n\n"
+                    f"Спасибо за использование Uz Give! 🎁"
+                ),
+                parse_mode="HTML"
+            )
+        except:
+            await bot.send_message(
+                request['user_id'],
+                f"✅ <b>Пополнение успешно!</b>\n\n"
+                f"💰 <b>Сумма:</b> {amount:,} so'm\n"
+                f"📊 <b>Ваш баланс:</b> {get_user(request['user_id'])['balance']:,} so'm",
+                parse_mode="HTML"
+            )
+        
+    except Exception as e:
+        logger.error(f"Error in approve_handler: {e}")
+        await message.answer(f"❌ Ошибка: {e}")
+
+@dp.message(F.text.startswith('/reject'))
+async def reject_handler(message: Message):
+    """Отклонение заявки админом"""
+    if message.from_user.id != ADMIN_ID and not await is_admin(message.from_user.id):
+        return
+    
+    try:
+        parts = message.text.split()
+        if len(parts) != 2:
+            await message.answer("❌ Формат: /reject ID\nПример: /reject 1")
+            return
+        
+        request_id = int(parts[1])
+        
+        data = load_all_data()
+        
+        # Ищем заявку
+        request = None
+        for req in data.get('topup_requests', []):
+            if req['id'] == request_id:
+                request = req
+                break
+        
+        if not request:
+            await message.answer(f"❌ Заявка #{request_id} не найдена")
+            return
+        
+        # Обновляем статус
+        for req in data['topup_requests']:
+            if req['id'] == request_id:
+                req['status'] = 'rejected'
+                break
+        
+        save_all_data(data)
+        
+        await message.answer(f"❌ Заявка #{request_id} отклонена")
+        
+        await bot.send_message(
+            request['user_id'],
+            f"❌ <b>Заявка отклонена</b>\n\n"
+            f"Заявка #{request_id} на пополнение была отклонена.\n\n"
+            f"Если вы считаете это ошибкой - обратитесь в поддержку.",
+            parse_mode="HTML"
+        )
+        
+    except Exception as e:
+        logger.error(f"Error in reject_handler: {e}")
+        await message.answer(f"❌ Ошибка: {e}")
 
 @dp.callback_query(F.data == "admin_panel")
 async def admin_panel(callback: types.CallbackQuery):
@@ -254,9 +486,11 @@ async def admin_topups(callback: types.CallbackQuery):
         await callback.answer("❌ Доступ запрещён", show_alert=True)
         return
     
-    topups = get_pending_topups()
+    data = load_all_data()
+    topups = data.get('topup_requests', [])
+    pending = [t for t in topups if t['status'] == 'pending']
     
-    if not topups:
+    if not pending:
         builder = InlineKeyboardBuilder()
         builder.button(text="🔙 Назад", callback_data="admin_panel")
         await callback.message.answer(
@@ -267,9 +501,9 @@ async def admin_topups(callback: types.CallbackQuery):
         await callback.answer()
         return
     
-    await callback.message.answer(f"📋 <b>Заявок: {len(topups)}</b>", parse_mode="HTML")
+    await callback.message.answer(f"📋 <b>Заявок: {len(pending)}</b>", parse_mode="HTML")
     
-    for topup in topups[:10]:
+    for topup in pending[:10]:
         builder = InlineKeyboardBuilder()
         builder.button(text="✅ Зачислить", callback_data=f"approve_{topup['id']}")
         builder.button(text="❌ Отклонить", callback_data=f"reject_{topup['id']}")
@@ -288,40 +522,37 @@ async def admin_topups(callback: types.CallbackQuery):
     await callback.answer()
 
 @dp.callback_query(F.data.startswith("approve_"))
-async def approve_handler(callback: types.CallbackQuery):
+async def approve_callback(callback: types.CallbackQuery):
     if callback.from_user.id != ADMIN_ID and not await is_admin(callback.from_user.id):
         await callback.answer("❌ Доступ запрещён", show_alert=True)
         return
     
     request_id = int(callback.data.split("_")[1])
-    request = approve_topup(request_id)
-    
-    if request:
-        await bot.send_message(
-            request['user_id'],
-            f"✅ <b>Пополнение зачислено!</b>\n\n"
-            f"💵 {request['amount']:,} so'm",
-            parse_mode="HTML"
-        )
-        await callback.message.answer(f"✅ Зачислено @{request['username']}")
+    await callback.message.answer(
+        f"💰 <b>Одобрение заявки #{request_id}</b>\n\n"
+        f"Отправьте сумму для зачисления:\n"
+        f"Пример: <code>10000</code>",
+        parse_mode="HTML"
+    )
     await callback.answer()
 
 @dp.callback_query(F.data.startswith("reject_"))
-async def reject_handler(callback: types.CallbackQuery):
+async def reject_callback(callback: types.CallbackQuery):
     if callback.from_user.id != ADMIN_ID and not await is_admin(callback.from_user.id):
         await callback.answer("❌ Доступ запрещён", show_alert=True)
         return
     
     request_id = int(callback.data.split("_")[1])
-    request = reject_topup(request_id)
+    data = load_all_data()
     
-    if request:
-        await bot.send_message(
-            request['user_id'],
-            f"❌ <b>Отклонено</b>\n\n💵 {request['amount']:,} so'm",
-            parse_mode="HTML"
-        )
-        await callback.message.answer(f"❌ Отклонено @{request['username']}")
+    for req in data['topup_requests']:
+        if req['id'] == request_id:
+            req['status'] = 'rejected'
+            break
+    
+    save_all_data(data)
+    
+    await callback.message.answer(f"❌ Заявка #{request_id} отклонена")
     await callback.answer()
 
 @dp.callback_query(F.data == "admin_stats")
@@ -346,53 +577,6 @@ async def admin_stats(callback: types.CallbackQuery):
     )
     await callback.answer()
 
-@dp.message(F.photo)
-async def handle_payment_proof(message: Message):
-    """Обработка загруженных чеков"""
-    logger.info(f"📸 Получено фото от {message.from_user.id}")
-    
-    photo = message.photo[-1]
-    
-    data = load_all_data()
-    
-    for request in reversed(data.get('topup_requests', [])):
-        if request['user_id'] == message.from_user.id and request['status'] == 'pending':
-            request['payment_proof'] = 'Фото загружено'
-            request['proof_photo_id'] = photo.file_id
-            save_all_data(data)
-            
-            await message.answer(
-                "✅ Чек получен!\n\n"
-                f"Заявка #{request['id']} обновлена.\n"
-                "Ожидайте подтверждения админа."
-            )
-            
-            admin_list = [ADMIN_ID]
-            if os.path.exists(DATA_FILE):
-                with open(DATA_FILE, 'r', encoding='utf-8') as f:
-                    data_json = json.load(f)
-                    admin_list.extend(data_json.get('admins', []))
-            
-            for admin_id in set(admin_list):
-                try:
-                    await bot.send_photo(
-                        admin_id,
-                        photo=photo.file_id,
-                        caption=(
-                            f"💰 <b>Чек для заявки # {request['id']}</b>\n\n"
-                            f"👤 @{request['username']}\n"
-                            f"💵 {request['amount']:,} so'm\n"
-                            f"📄 Чек: Фото загружено"
-                        ),
-                        parse_mode="HTML"
-                    )
-                except Exception as e:
-                    logger.error(f"Failed to send proof to admin {admin_id}: {e}")
-            
-            return
-    
-    await message.answer("❌ Не найдена активная заявка.\nСначала создайте заявку на пополнение.")
-
 @dp.message(F.text)
 async def handle_text(message: Message):
     is_admin_user = (message.from_user.id == ADMIN_ID or await is_admin(message.from_user.id))
@@ -408,7 +592,7 @@ async def handle_text(message: Message):
             admin_id = int(message.text)
             data = load_all_data()
             
-            if 'admins' not in data:
+            if 'admins' not in 
                 data['admins'] = []
             
             if admin_id not in data['admins']:
@@ -461,57 +645,13 @@ async def process_webapp_data(message: Message):
                         if req['user_id'] == message.from_user.id:
                             user_requests.append({
                                 'id': req['id'],
-                                'amount': req['amount'],
+                                'amount': req.get('amount', 0),
                                 'status': req['status'],
                                 'created_at': req['created_at'],
                                 'payment_proof': req.get('payment_proof', 'Не загружен')
                             })
             
-            await message.answer(
-                f"USER_REQUESTS:{json.dumps(user_requests)}"
-            )
-            return
-        
-        if data.get('type') == 'topup_request':
-            username = data.get('username', 'Не указан')
-            amount = data.get('amount', 0)
-            proof = data.get('proof', 'Не предоставлен')
-            
-            request = create_topup_request(message.from_user.id, amount, proof, username)
-            
-            settings = get_admin_settings()
-            
-            admin_list = [ADMIN_ID]
-            if os.path.exists(DATA_FILE):
-                with open(DATA_FILE, 'r', encoding='utf-8') as f:
-                    data_json = json.load(f)
-                    admin_list.extend(data_json.get('admins', []))
-            
-            for admin_id in set(admin_list):
-                try:
-                    await bot.send_message(
-                        admin_id,
-                        f"💰 <b>НОВАЯ ЗАЯВКА # {request['id']}</b>\n\n"
-                        f"👤 <b>Пользователь:</b> @{username}\n"
-                        f"🔢 <b>ID:</b> <code>{message.from_user.id}</code>\n"
-                        f"💵 <b>Сумма:</b> {amount:,} so'm\n"
-                        f"📄 <b>Чек:</b> {proof}\n"
-                        f"⏰ <b>Время:</b> {datetime.now().strftime('%d.%m.%Y %H:%M')}\n\n"
-                        f"Реквизиты:\n{settings.get('payment_details', 'Not set')}\n\n"
-                        f"<i>📸 Отправьте фото чека боту для подтверждения</i>",
-                        parse_mode="HTML"
-                    )
-                except Exception as e:
-                    logger.error(f"Failed to send to admin {admin_id}: {e}")
-            
-            await message.answer(
-                f"✅ <b>Заявка # {request['id']} создана!</b>\n\n"
-                f"💵 Сумма: {amount:,} so'm\n"
-                f"👤 Username: @{username}\n\n"
-                f"<b>📸 Следующий шаг:</b>\n"
-                f"Отправьте фото/скриншот чека боту в личные сообщения",
-                parse_mode="HTML"
-            )
+            await message.answer(f"USER_REQUESTS:{json.dumps(user_requests)}")
             return
         
         if data.get('type') == 'stars':
@@ -538,7 +678,7 @@ async def process_webapp_data(message: Message):
             else:
                 await message.answer("❌ Недостаточно средств\nПополните баланс")
     except Exception as e:
-        logger.error(f"Error in process_webapp_data: {e}")
+        logger.error(f"Error in process_webapp_ {e}")
 
 async def main():
     logger.info("Starting bot...")
