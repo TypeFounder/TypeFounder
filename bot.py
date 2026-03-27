@@ -5,7 +5,7 @@ import os
 from datetime import datetime
 from aiogram import Bot, Dispatcher, F, types
 from aiogram.filters import Command, CommandStart
-from aiogram.types import WebAppInfo, Message, FSInputFile
+from aiogram.types import WebAppInfo, Message
 from aiogram.utils.keyboard import InlineKeyboardBuilder
 from config import BOT_TOKEN, ADMIN_ID, WEBAPP_URL
 from database import (
@@ -14,7 +14,7 @@ from database import (
     add_purchase, get_top_users, get_admin_settings, update_admin_settings
 )
 
-logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(name)s - %(levelname)s - %(message)s')
+logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 
 bot = Bot(token=BOT_TOKEN)
@@ -48,7 +48,6 @@ async def cmd_start(message: Message):
     user = get_user(message.from_user.id)
     update_user(message.from_user.id, {'username': message.from_user.username or ''})
     
-    # Отправляем красивую картинку
     image_url = "https://images.unsplash.com/photo-1611162617474-5b21e879e113?w=800"
     
     builder = InlineKeyboardBuilder()
@@ -65,8 +64,7 @@ async def cmd_start(message: Message):
         caption=(
             f"🎁 <b>Добро пожаловать в Uz Give!</b>\n\n"
             f"👤 <b>Ваш баланс:</b> {user['balance']:,} so'm\n\n"
-            f"Покупайте Telegram Stars, Premium и подарки.\n\n"
-            f"Нажмите кнопку ниже:"
+            f"Покупайте Telegram Stars, Premium и подарки."
         ),
         reply_markup=builder.as_markup(),
         parse_mode="HTML"
@@ -98,11 +96,12 @@ async def admin_panel(callback: types.CallbackQuery):
     builder.button(text="📊 Статистика", callback_data="admin_stats")
     builder.adjust(1)
     
-    await callback.message.edit_text(
+    await callback.message.answer(
         "🔧 <b>Админ панель</b>\n\nВыберите раздел:",
         reply_markup=builder.as_markup(),
         parse_mode="HTML"
     )
+    await callback.answer()
 
 @dp.callback_query(F.data == "admin_premium")
 async def admin_premium(callback: types.CallbackQuery):
@@ -123,7 +122,12 @@ async def admin_premium(callback: types.CallbackQuery):
     builder.button(text="🔙 Назад", callback_data="admin_panel")
     builder.adjust(1)
     
-    await callback.message.edit_text(text, reply_markup=builder.as_markup(), parse_mode="HTML")
+    await callback.message.answer(
+        text,
+        reply_markup=builder.as_markup(),
+        parse_mode="HTML"
+    )
+    await callback.answer()
 
 @dp.callback_query(F.data == "admin_manage")
 async def admin_manage(callback: types.CallbackQuery):
@@ -157,7 +161,12 @@ async def admin_manage(callback: types.CallbackQuery):
     builder.button(text="🔙 Назад", callback_data="admin_panel")
     builder.adjust(1)
     
-    await callback.message.edit_text(text, reply_markup=builder.as_markup(), parse_mode="HTML")
+    await callback.message.answer(
+        text,
+        reply_markup=builder.as_markup(),
+        parse_mode="HTML"
+    )
+    await callback.answer()
 
 @dp.callback_query(F.data == "admin_star_rate")
 async def admin_star_rate(callback: types.CallbackQuery):
@@ -180,7 +189,12 @@ async def admin_star_rate(callback: types.CallbackQuery):
     builder.button(text="🔙 Назад", callback_data="admin_panel")
     builder.adjust(1)
     
-    await callback.message.edit_text(text, reply_markup=builder.as_markup(), parse_mode="HTML")
+    await callback.message.answer(
+        text,
+        reply_markup=builder.as_markup(),
+        parse_mode="HTML"
+    )
+    await callback.answer()
 
 @dp.callback_query(F.data == "admin_change_rate")
 async def admin_change_rate(callback: types.CallbackQuery):
@@ -211,7 +225,12 @@ async def admin_gifts(callback: types.CallbackQuery):
     builder.button(text="🔙 Назад", callback_data="admin_panel")
     builder.adjust(1)
     
-    await callback.message.edit_text(text, reply_markup=builder.as_markup(), parse_mode="HTML")
+    await callback.message.answer(
+        text,
+        reply_markup=builder.as_markup(),
+        parse_mode="HTML"
+    )
+    await callback.answer()
 
 @dp.callback_query(F.data == "admin_payment")
 async def admin_payment(callback: types.CallbackQuery):
@@ -240,11 +259,12 @@ async def admin_topups(callback: types.CallbackQuery):
     if not topups:
         builder = InlineKeyboardBuilder()
         builder.button(text="🔙 Назад", callback_data="admin_panel")
-        await callback.message.edit_text(
+        await callback.message.answer(
             "⏳ <b>Нет заявок</b>",
             reply_markup=builder.as_markup(),
             parse_mode="HTML"
         )
+        await callback.answer()
         return
     
     await callback.message.answer(f"📋 <b>Заявок: {len(topups)}</b>", parse_mode="HTML")
@@ -283,7 +303,7 @@ async def approve_handler(callback: types.CallbackQuery):
             f"💵 {request['amount']:,} so'm",
             parse_mode="HTML"
         )
-        await callback.message.edit_text(f"✅ Зачислено @{request['username']}")
+        await callback.message.answer(f"✅ Зачислено @{request['username']}")
     await callback.answer()
 
 @dp.callback_query(F.data.startswith("reject_"))
@@ -301,7 +321,7 @@ async def reject_handler(callback: types.CallbackQuery):
             f"❌ <b>Отклонено</b>\n\n💵 {request['amount']:,} so'm",
             parse_mode="HTML"
         )
-        await callback.message.edit_text(f"❌ Отклонено @{request['username']}")
+        await callback.message.answer(f"❌ Отклонено @{request['username']}")
     await callback.answer()
 
 @dp.callback_query(F.data == "admin_stats")
@@ -319,7 +339,12 @@ async def admin_stats(callback: types.CallbackQuery):
     builder.button(text="🔙 Назад", callback_data="admin_panel")
     builder.adjust(1)
     
-    await callback.message.edit_text(text, reply_markup=builder.as_markup(), parse_mode="HTML")
+    await callback.message.answer(
+        text,
+        reply_markup=builder.as_markup(),
+        parse_mode="HTML"
+    )
+    await callback.answer()
 
 @dp.message(F.text)
 async def handle_text(message: Message):
@@ -332,8 +357,6 @@ async def handle_text(message: Message):
         return
     
     try:
-        logger.info(f"Admin message received: {message.text}")
-        
         if message.text.isdigit() and int(message.text) > 100000000:
             admin_id = int(message.text)
             data = load_all_data()
@@ -344,7 +367,6 @@ async def handle_text(message: Message):
             if admin_id not in data['admins']:
                 data['admins'].append(admin_id)
                 save_all_data(data)
-                logger.info(f"Admin added: {admin_id}")
                 await message.answer(f"✅ Админ добавлен: ID {admin_id}")
             else:
                 await message.answer(f"⚠️ Этот пользователь уже админ")
@@ -352,26 +374,20 @@ async def handle_text(message: Message):
         
         if message.text.isdigit():
             value = int(message.text)
-            
-            # Проверяем контекст (курс или премиум)
             settings = get_admin_settings()
             
-            # Если цена похожа на премиум (больше 10000)
             if value > 10000:
                 settings['premium_price'] = value
                 update_admin_settings({'premium_price': value})
                 await message.answer(f"✅ Premium обновлён: {value:,} so'm")
             else:
-                # Это курс звёзд
                 settings['star_rate'] = value
                 update_admin_settings({'star_rate': value})
                 await message.answer(f"✅ Курс обновлён: 1 звезда = {value:,} so'm")
         else:
-            # Это реквизиты
             data = load_all_data()
             data['admin_settings']['payment_details'] = message.text
             save_all_data(data)
-            logger.info(f"Payment details updated to: {message.text}")
             await message.answer("✅ Реквизиты обновлены!")
     except Exception as e:
         logger.error(f"Error in handle_text: {e}")
@@ -385,9 +401,7 @@ async def process_webapp_data(message: Message):
         
         if data.get('type') == 'get_payment_details':
             settings = get_admin_settings()
-            payment_details = settings.get('payment_details', 'Not set')
-            logger.info(f"Sending payment details: {payment_details}")
-            await message.answer(payment_details)
+            await message.answer(settings.get('payment_details', 'Not set'))
             return
         
         if data.get('type') == 'topup_request':
@@ -395,11 +409,7 @@ async def process_webapp_data(message: Message):
             amount = data.get('amount', 0)
             proof = data.get('proof', 'Не предоставлен')
             
-            logger.info(f"Creating topup request: user={message.from_user.id}, amount={amount}, username={username}, proof={proof}")
-            
             request = create_topup_request(message.from_user.id, amount, proof, username)
-            
-            logger.info(f"Topup request created: {request}")
             
             settings = get_admin_settings()
             
@@ -408,8 +418,6 @@ async def process_webapp_data(message: Message):
                 with open(DATA_FILE, 'r', encoding='utf-8') as f:
                     data_json = json.load(f)
                     admin_list.extend(data_json.get('admins', []))
-            
-            logger.info(f"Sending to admins: {admin_list}")
             
             for admin_id in set(admin_list):
                 try:
@@ -424,7 +432,6 @@ async def process_webapp_data(message: Message):
                         f"Реквизиты:\n{settings.get('payment_details', 'Not set')}",
                         parse_mode="HTML"
                     )
-                    logger.info(f"Topup request sent to admin {admin_id}")
                 except Exception as e:
                     logger.error(f"Failed to send to admin {admin_id}: {e}")
             

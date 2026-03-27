@@ -554,4 +554,20 @@ function closeApp() {
     tg.close();
 }
 
+function buyPremium() {
+    const premiumPrice = 50000;
+    
+    if (userBalance < premiumPrice) {
+        tg.showAlert("❌ Недостаточно средств!\n\nПополните баланс.");
+        return;
+    }
+    
+    tg.sendData(JSON.stringify({
+        type: 'premium',
+        price: premiumPrice,
+        timestamp: new Date().toISOString()
+    }));
+    
+    tg.showAlert("✅ Telegram Premium активирован!\n\n💰 " + premiumPrice.toLocaleString() + " so'm");
+}
 tg.ready();

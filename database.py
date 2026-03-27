@@ -1,18 +1,13 @@
 import json
 import os
-import logging
 from datetime import datetime
 
-logger = logging.getLogger(__name__)
 DATA_FILE = 'data.json'
 
 def load_data():
-    try:
-        if os.path.exists(DATA_FILE):
-            with open(DATA_FILE, 'r', encoding='utf-8') as f:
-                return json.load(f)
-    except Exception as e:
-        logger.error(f"Error loading data: {e}")
+    if os.path.exists(DATA_FILE):
+        with open(DATA_FILE, 'r', encoding='utf-8') as f:
+            return json.load(f)
     
     default_data = {
         'admins': [],
@@ -39,11 +34,8 @@ def load_data():
     return default_data
 
 def save_data(data):
-    try:
-        with open(DATA_FILE, 'w', encoding='utf-8') as f:
-            json.dump(data, f, ensure_ascii=False, indent=2)
-    except Exception as e:
-        logger.error(f"Error saving data: {e}")
+    with open(DATA_FILE, 'w', encoding='utf-8') as f:
+        json.dump(data, f, ensure_ascii=False, indent=2)
 
 def get_user(user_id):
     data = load_data()
