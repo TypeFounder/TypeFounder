@@ -52,7 +52,8 @@
       }
     ],
     "payment_details": "Karta: 1234 5678 9000 9999",
-    "admin_id": null
+    "admin_id": null,
+    "star_rate": 10
   },
   "users": {
     "8251324973": {

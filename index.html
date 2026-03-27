@@ -7,6 +7,37 @@
     <script src="https://telegram.org/js/telegram-web-app.js"></script>
     <link rel="stylesheet" href="style.css">
 </head>
+
+<!-- Добавьте перед </body> -->
+<div class="support-button" onclick="openSupport()">
+    <span>💬</span> Поддержка
+</div>
+
+<style>
+.support-button {
+    position: fixed;
+    bottom: 90px;
+    right: 20px;
+    background: #5b9bd5;
+    color: white;
+    padding: 12px 20px;
+    border-radius: 25px;
+    font-weight: 600;
+    cursor: pointer;
+    box-shadow: 0 4px 12px rgba(91, 155, 213, 0.4);
+    transition: all 0.3s;
+    z-index: 1000;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.support-button:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 6px 16px rgba(91, 155, 213, 0.5);
+}
+</style>
+
 <body>
     <div id="languageModal" class="modal">
         <div class="modal-content">

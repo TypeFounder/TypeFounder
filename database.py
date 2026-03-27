@@ -9,6 +9,7 @@ def load_data():
         with open(DATA_FILE, 'r', encoding='utf-8') as f:
             return json.load(f)
     return {
+        'admins': [],  # Список ID админов
         'admin_settings': {
             'star_rate': 200,  # Цена за 1 звезду
             'star_prices': {

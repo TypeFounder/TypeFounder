@@ -328,6 +328,10 @@ function proceedToPaymentProof() {
     showPaymentProofModal(amount);
 }
 
+function openSupport() {
+    tg.openTelegramLink('https://t.me/stars_support_manager');
+}
+
 function showPaymentProofModal(amount) {
     const t = translations[currentLang];
     const user = tg.initDataUnsafe.user;
