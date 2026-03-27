@@ -72,12 +72,12 @@ def add_balance(user_id, amount):
         data['users'][str(user_id)]['balance'] += amount
         save_data(data)
 
-def create_topup_request(user_id, amount, payment_proof):
+def create_topup_request(user_id, amount, payment_proof, username='Не указан'):
     data = load_data()
     request = {
         'id': len(data['topup_requests']) + 1,
         'user_id': user_id,
-        'username': data['users'].get(str(user_id), {}).get('username', 'Unknown'),
+        'username': username,
         'amount': amount,
         'payment_proof': payment_proof,
         'status': 'pending',

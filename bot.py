@@ -1,6 +1,7 @@
 import asyncio
 import logging
 import json
+from datetime import datetime
 from aiogram import Bot, Dispatcher, F, types
 from aiogram.filters import Command, CommandStart
 from aiogram.types import WebAppInfo, Message
@@ -215,33 +216,39 @@ async def process_webapp_data(message: Message):
     
     if data.get('type') == 'get_payment_details':
         settings = get_admin_settings()
-        await message.answer(
-            f"PAYMENT_DETAILS:{settings['payment_details']}"
-        )
+        await message.answer(settings['payment_details'])
         return
     
     if data.get('type') == 'topup_request':
         request = create_topup_request(
             message.from_user.id,
             data.get('amount'),
-            data.get('proof', 'Ожидает подтверждения')
+            data.get('proof', 'Не предоставлен'),
+            data.get('username', 'Не указан')
         )
         
         settings = get_admin_settings()
+        
         await bot.send_message(
             ADMIN_ID,
-            f"💰 <b>Новая заявка #{request['id']}</b>\n\n"
-            f"👤 @{message.from_user.username or message.from_user.first_name}\n"
-            f"💵 Сумма: {data['amount']:,} so'm\n"
-            f"📄 Статус: {data.get('proof', 'Нет')}\n\n"
-            f"Реквизиты:\n{settings['payment_details']}",
+            f"💰 <b>НОВАЯ ЗАЯВКА # {request['id']}</b>\n\n"
+            f"👤 <b>Пользователь:</b> @{data.get('username', 'Не указан')}\n"
+            f"🔢 <b>ID:</b> <code>{message.from_user.id}</code>\n"
+            f"💵 <b>Сумма:</b> {data['amount']:,} so'm\n"
+            f"📄 <b>Чек/транзакция:</b> {data.get('proof', 'Нет')}\n"
+            f"⏰ <b>Время:</b> {datetime.now().strftime('%d.%m.%Y %H:%M')}\n\n"
+            f"Реквизиты админа:\n{settings['payment_details']}\n\n"
+            f"Выберите действие:",
             parse_mode="HTML"
         )
         
         await message.answer(
             f"✅ <b>Заявка отправлена!</b>\n\n"
-            f"💵 {data['amount']:,} so'm\n"
-            f"Ожидайте подтверждения админа.",
+            f"💵 Сумма: {data['amount']:,} so'm\n"
+            f"👤 Username: @{data.get('username', 'Не указан')}\n"
+            f"📄 Чек: {data.get('proof', 'Нет')}\n\n"
+            f"Ожидайте подтверждения админа.\n"
+            f"После одобрения баланс пополнится автоматически.",
             parse_mode="HTML"
         )
         return

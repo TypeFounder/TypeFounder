@@ -81,47 +81,44 @@ let currentLang = 'uz';
 let selectedStars = 50;
 let userBalance = 0;
 let userData = { history: [], totalSpent: 0, totalPurchases: 0 };
+let paymentDetails = 'Загрузка...';
 
 document.addEventListener('DOMContentLoaded', () => {
     const savedLang = localStorage.getItem('language');
     if (savedLang) {
         currentLang = savedLang;
         const modal = document.getElementById('languageModal');
-        if (modal) {
-            modal.style.display = 'none';
-        }
+        if (modal) modal.style.display = 'none';
         initApp();
     } else {
         const modal = document.getElementById('languageModal');
-        if (modal) {
-            modal.style.display = 'flex';
-        }
+        if (modal) modal.style.display = 'flex';
     }
     
     loadData();
+    loadPaymentDetailsFromBot();
 });
+
+function loadPaymentDetailsFromBot() {
+    tg.sendData(JSON.stringify({
+        type: 'get_payment_details',
+        timestamp: new Date().toISOString()
+    }));
+}
 
 function selectLanguage(lang) {
     currentLang = lang;
     localStorage.setItem('language', lang);
-    
     const modal = document.getElementById('languageModal');
-    if (modal) {
-        modal.style.display = 'none';
-    }
-    
+    if (modal) modal.style.display = 'none';
     initApp();
 }
 
 function toggleLanguage() {
     currentLang = currentLang === 'uz' ? 'ru' : 'uz';
     localStorage.setItem('language', currentLang);
-    
     const btn = document.getElementById('currentLangText');
-    if (btn) {
-        btn.textContent = translations[currentLang].lang;
-    }
-    
+    if (btn) btn.textContent = translations[currentLang].lang;
     initApp();
 }
 
@@ -132,7 +129,6 @@ function initApp() {
     loadRating();
     loadProfile();
     updateBalance();
-    
     tg.MainButton.setText(translations[currentLang].buyBtn);
     tg.MainButton.onClick(() => buyStars());
     tg.MainButton.show();
@@ -140,7 +136,6 @@ function initApp() {
 
 function updateTexts() {
     const t = translations[currentLang];
-    
     const elements = {
         'starsTitle': t.starsTitle,
         'recipientLabel': t.recipientLabel,
@@ -149,27 +144,20 @@ function updateTexts() {
         'ratingTitle': t.ratingTitle,
         'profileTitle': t.profileTitle
     };
-    
     for (const [id, text] of Object.entries(elements)) {
         const el = document.getElementById(id);
         if (el) el.textContent = text;
     }
-    
     const usernameInput = document.getElementById('username');
     if (usernameInput) usernameInput.placeholder = t.usernamePlaceholder;
-    
     const selfBtn = document.getElementById('selfBtn');
     if (selfBtn) selfBtn.textContent = t.selfBtn;
-    
     const customLabel = document.querySelector('.form-group .form-label:last-of-type');
     if (customLabel) customLabel.textContent = t.customLabel;
-    
     const customInput = document.getElementById('customStars');
     if (customInput) customInput.placeholder = t.customPlaceholder;
-    
     const customBtn = document.querySelector('.custom-btn');
     if (customBtn) customBtn.textContent = t.customBtn;
-    
     tg.MainButton.setText(t.buyBtn);
 }
 
@@ -181,11 +169,9 @@ function selectStars(amount) {
     selectedStars = amount;
     document.getElementById('starsAmount').value = amount;
     updatePriceDisplay();
-    
     document.querySelectorAll('.quick-btn').forEach(btn => {
         btn.classList.toggle('active', parseInt(btn.textContent) === amount);
     });
-    
     tg.MainButton.show();
 }
 
@@ -219,9 +205,7 @@ function buyStars() {
         tg.showAlert("Username kiriting!");
         return;
     }
-    
     const price = starPrices[selectedStars] || (selectedStars * 200);
-    
     if (userBalance < price) {
         tg.showPopup({
             title: translations[currentLang].insufficientBalance,
@@ -235,9 +219,7 @@ function buyStars() {
         });
         return;
     }
-    
     addToHistory('stars', selectedStars, price, username);
-    
     tg.sendData(JSON.stringify({
         type: 'stars',
         stars: selectedStars,
@@ -246,7 +228,6 @@ function buyStars() {
         currency: 'UZS',
         timestamp: new Date().toISOString()
     }));
-    
     tg.showPopup({
         title: "Muvaffaqiyatli!",
         message: `${selectedStars} ⭐\n${price.toLocaleString()} so'm`,
@@ -260,29 +241,113 @@ function buyStars() {
 
 function showTopupModal(amount) {
     const t = translations[currentLang];
+    const user = tg.initDataUnsafe.user;
     
     const modal = document.createElement('div');
     modal.className = 'modal';
     modal.style.display = 'flex';
     
     modal.innerHTML = `
-        <div class="modal-content" style="max-width: 90%; width: 400px;">
-            <h2 style="margin-bottom: 20px;">${t.topupTitle}</h2>
+        <div class="modal-content" style="max-width: 90%; width: 450px;">
+            <h2 style="margin-bottom: 25px;">${t.topupTitle}</h2>
+            
+            <div style="margin-bottom: 20px;">
+                <label style="display: block; margin-bottom: 8px; color: #8b92a8; font-size: 14px;">
+                    ${t.topupAmount}:
+                </label>
+                <input type="number" id="topupAmountInput" 
+                       value="${amount || 10000}" 
+                       style="width: 100%; padding: 12px; background: rgba(30, 39, 54, 0.8); 
+                              border: 2px solid #2d3a4f; border-radius: 8px; color: #fff; 
+                              font-size: 18px; font-weight: 600;"
+                       placeholder="10000">
+            </div>
+            
             <div style="background: rgba(30, 39, 54, 0.8); padding: 20px; border-radius: 12px; margin-bottom: 20px;">
-                <p style="margin-bottom: 10px; color: #8b92a8;">${t.topupAmount}:</p>
-                <p style="font-size: 24px; font-weight: 700; color: #5b9bd5; margin-bottom: 20px;">
-                    ${(amount || 10000).toLocaleString()} so'm
-                </p>
-                <p style="margin-bottom: 10px; color: #8b92a8;">Реквизиты для оплаты:</p>
-                <div id="paymentDetails" style="background: #0f1419; padding: 15px; border-radius: 8px; font-family: monospace; white-space: pre-wrap; margin-bottom: 15px;">
-                    Загрузка...
+                <p style="margin-bottom: 10px; color: #8b92a8; font-size: 14px;">Реквизиты для оплаты:</p>
+                <div id="paymentDetails" style="background: #0f1419; padding: 15px; border-radius: 8px; 
+                         font-family: monospace; white-space: pre-wrap; font-size: 14px; line-height: 1.6;
+                         min-height: 80px;">
+                    ${paymentDetails}
                 </div>
             </div>
+            
             <div style="display: flex; gap: 10px;">
-                <button class="lang-btn" onclick="this.closest('.modal').remove()" style="background: #2d3a4f; flex: 1;">
+                <button class="lang-btn" onclick="this.closest('.modal').remove()" 
+                        style="background: #2d3a4f; flex: 1;">
                     ${t.cancel}
                 </button>
-                <button class="lang-btn" onclick="submitTopup(${amount || 10000})" style="flex: 1;">
+                <button class="lang-btn" onclick="proceedToPaymentProof()" style="flex: 1;">
+                    Продолжить
+                </button>
+            </div>
+        </div>
+    `;
+    
+    document.body.appendChild(modal);
+}
+
+function proceedToPaymentProof() {
+    const amountInput = document.getElementById('topupAmountInput');
+    const amount = parseInt(amountInput?.value) || 10000;
+    const modal = document.querySelector('.modal');
+    if (modal) modal.remove();
+    showPaymentProofModal(amount);
+}
+
+function showPaymentProofModal(amount) {
+    const t = translations[currentLang];
+    const user = tg.initDataUnsafe.user;
+    
+    const modal = document.createElement('div');
+    modal.className = 'modal';
+    modal.style.display = 'flex';
+    
+    modal.innerHTML = `
+        <div class="modal-content" style="max-width: 90%; width: 450px;">
+            <h2 style="margin-bottom: 25px;">Подтверждение оплаты</h2>
+            
+            <div style="background: rgba(91, 155, 213, 0.2); padding: 15px; border-radius: 12px; margin-bottom: 20px; border: 1px solid #5b9bd5;">
+                <p style="color: #5b9bd5; font-size: 18px; font-weight: 700; text-align: center;">
+                    Сумма: ${amount.toLocaleString()} so'm
+                </p>
+            </div>
+            
+            <div style="margin-bottom: 15px;">
+                <label style="display: block; margin-bottom: 8px; color: #8b92a8; font-size: 14px;">
+                    Ваш username:
+                </label>
+                <input type="text" id="topupUsername" 
+                       value="${user?.username || ''}" 
+                       style="width: 100%; padding: 12px; background: rgba(30, 39, 54, 0.8); 
+                              border: 2px solid #2d3a4f; border-radius: 8px; color: #fff; 
+                              font-size: 16px;"
+                       placeholder="@username">
+            </div>
+            
+            <div style="margin-bottom: 20px;">
+                <label style="display: block; margin-bottom: 8px; color: #8b92a8; font-size: 14px;">
+                    Чек/скриншот оплаты (номер транзакции):
+                </label>
+                <input type="text" id="topupProof" 
+                       style="width: 100%; padding: 12px; background: rgba(30, 39, 54, 0.8); 
+                              border: 2px solid #2d3a4f; border-radius: 8px; color: #fff; 
+                              font-size: 16px;"
+                       placeholder="Например: TX123456">
+            </div>
+            
+            <div style="background: rgba(255, 193, 7, 0.1); padding: 15px; border-radius: 8px; margin-bottom: 20px; border-left: 3px solid #FFC107;">
+                <p style="color: #FFC107; font-size: 13px; margin: 0;">
+                    ⚠️ После нажатия "Отправить", заявка будет отправлена админу. После подтверждения баланс пополнится.
+                </p>
+            </div>
+            
+            <div style="display: flex; gap: 10px;">
+                <button class="lang-btn" onclick="this.closest('.modal').remove()" 
+                        style="background: #2d3a4f; flex: 1;">
+                    ${t.cancel}
+                </button>
+                <button class="lang-btn" onclick="submitTopupRequest(${amount})" style="flex: 1; background: #5b9bd5;">
                     ${t.sent}
                 </button>
             </div>
@@ -292,39 +357,46 @@ function showTopupModal(amount) {
     document.body.appendChild(modal);
 }
 
-function submitTopup(amount) {
-    const t = translations[currentLang];
+function submitTopupRequest(amount) {
+    const usernameInput = document.getElementById('topupUsername');
+    const proofInput = document.getElementById('topupProof');
+    const username = usernameInput?.value?.trim() || 'Не указан';
+    const proof = proofInput?.value?.trim() || 'Не предоставлен';
+    
+    if (!username || username === '@') {
+        tg.showAlert('Пожалуйста, введите ваш username!');
+        return;
+    }
+    if (!proof || proof.length < 3) {
+        tg.showAlert('Пожалуйста, введите номер чека/транзакции!');
+        return;
+    }
+    
+    tg.sendData(JSON.stringify({
+        type: 'topup_request',
+        amount: amount,
+        username: username,
+        proof: proof,
+        timestamp: new Date().toISOString()
+    }));
+    
+    const modal = document.querySelector('.modal');
+    if (modal) modal.remove();
     
     tg.showPopup({
-        title: t.topupTitle,
-        message: "Отправьте скриншот/чек оплаты\n\nПосле подтверждения админом, баланс пополнится.",
-        buttons: [
-            { id: 'confirm', type: 'ok', text: t.sent },
-            { id: 'cancel', type: 'cancel' }
-        ]
-    }, (buttonId) => {
-        if (buttonId === 'confirm') {
-            tg.sendData(JSON.stringify({
-                type: 'topup_request',
-                amount: amount,
-                proof: 'Ожидает подтверждения',
-                timestamp: new Date().toISOString()
-            }));
-            
-            const modal = document.querySelector('.modal');
-            if (modal) modal.remove();
-            
-            tg.showAlert(t.topupSuccess);
-        }
+        title: 'Заявка отправлена!',
+        message: `💰 Сумма: ${amount.toLocaleString()} so'm\n\n` +
+                 `👤 Username: ${username}\n` +
+                 `📄 Чек: ${proof}\n\n` +
+                 `Ожидайте подтверждения админа.`,
+        buttons: [{ id: 'ok', type: 'ok', text: 'Закрыть' }]
     });
 }
 
 function loadGifts() {
     const grid = document.getElementById('giftsGrid');
     if (!grid) return;
-    
     grid.innerHTML = '';
-    
     gifts.forEach(gift => {
         const card = document.createElement('div');
         card.className = 'gift-card';
@@ -344,9 +416,7 @@ function buyGift(gift) {
         tg.showAlert(translations[currentLang].insufficientBalance);
         return;
     }
-    
     addToHistory('gift', gift.stars, gift.price, gift.name[currentLang]);
-    
     tg.sendData(JSON.stringify({
         type: 'gift',
         gift: gift.name[currentLang],
@@ -354,7 +424,6 @@ function buyGift(gift) {
         price: gift.price,
         timestamp: new Date().toISOString()
     }));
-    
     tg.showPopup({
         title: "Muvaffaqiyatli!",
         message: `${gift.name[currentLang]}\n${gift.price.toLocaleString()} so'm`,
@@ -372,7 +441,6 @@ function loadRating() {
         { name: 'Vali', spent: 180000, purchases: 10 },
         { name: 'Sardor', spent: 120000, purchases: 8 }
     ];
-    
     list.innerHTML = '';
     rating.forEach((user, i) => {
         const item = document.createElement('div');
@@ -393,13 +461,11 @@ function loadRating() {
 function loadProfile() {
     document.getElementById('totalSpentValue').textContent = `${userData.totalSpent.toLocaleString()} so'm`;
     document.getElementById('totalPurchasesValue').textContent = userData.totalPurchases;
-    
     const list = document.getElementById('historyList');
     if (userData.history.length === 0) {
         list.innerHTML = `<div style="text-align:center;padding:40px;color:#8b92a8">${translations[currentLang].noHistory}</div>`;
         return;
     }
-    
     list.innerHTML = '';
     userData.history.slice().reverse().slice(0, 10).forEach(item => {
         const div = document.createElement('div');
@@ -444,7 +510,6 @@ function switchTab(tab) {
 function navTo(page) {
     document.querySelectorAll('.nav-item').forEach(item => item.classList.remove('active'));
     event.target.closest('.nav-item').classList.add('active');
-    
     if (page === 'menu') switchTab('stars');
     else if (['gift', 'rating', 'profile'].includes(page)) switchTab(page);
 }
