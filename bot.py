@@ -204,6 +204,8 @@ async def approve_handler(message: Message):
         request_id = int(parts[1])
         amount = int(parts[2])
         
+        logger.info(f"Approving request {request_id} with amount {amount}")
+        
         data = load_all_data()
         
         # Ищем заявку
@@ -225,18 +227,32 @@ async def approve_handler(message: Message):
                 req['approved_at'] = datetime.now().isoformat()
                 break
         
+        # ПЕРЕД сохранением получаем текущего пользователя
+        user = get_user(request['user_id'])
+        old_balance = user['balance']
+        
         # Зачисляем баланс
         add_balance(request['user_id'], amount)
+        
+        # Сохраняем
         save_all_data(data)
+        
+        # Проверяем что баланс обновился
+        updated_user = get_user(request['user_id'])
+        new_balance = updated_user['balance']
+        
+        logger.info(f"Balance updated: {old_balance} -> {new_balance} (added {amount})")
         
         await message.answer(
             f"✅ <b>Заявка #{request_id} одобрена!</b>\n\n"
             f"💵 Сумма: {amount:,} so'm зачислена\n"
-            f"👤 @{request['username']}"
+            f"👤 @{request['username']}\n"
+            f"📊 Баланс: {old_balance:,} → {new_balance:,} so'm",
+            parse_mode="HTML"
         )
         
         # Отправляем пользователю красивую картинку
-        success_image = "https://i.imgur.com/success-check.png"  # Замените на свою картинку
+        success_image = "https://images.unsplash.com/photo-1555445054-8488d04c0d6d?w=800"
         
         try:
             await bot.send_photo(
@@ -245,23 +261,36 @@ async def approve_handler(message: Message):
                 caption=(
                     f"✅ <b>Пополнение успешно!</b>\n\n"
                     f"💰 <b>Сумма:</b> {amount:,} so'm\n"
-                    f"📊 <b>Ваш баланс:</b> {get_user(request['user_id'])['balance']:,} so'm\n\n"
+                    f"📊 <b>Ваш баланс:</b> {new_balance:,} so'm\n\n"
                     f"Спасибо за использование Uz Give! 🎁"
                 ),
                 parse_mode="HTML"
             )
-        except:
+        except Exception as e:
+            logger.error(f"Failed to send success photo: {e}")
             await bot.send_message(
                 request['user_id'],
                 f"✅ <b>Пополнение успешно!</b>\n\n"
                 f"💰 <b>Сумма:</b> {amount:,} so'm\n"
-                f"📊 <b>Ваш баланс:</b> {get_user(request['user_id'])['balance']:,} so'm",
+                f"📊 <b>Ваш баланс:</b> {new_balance:,} so'm\n\n"
+                f"Спасибо за использование Uz Give! 🎁",
                 parse_mode="HTML"
             )
         
     except Exception as e:
-        logger.error(f"Error in approve_handler: {e}")
+        logger.error(f"Error in approve_handler: {e}", exc_info=True)
         await message.answer(f"❌ Ошибка: {e}")
+        
+@dp.message(F.text == "/check_balance")
+async def check_balance(message: Message):
+    """Проверка баланса (для отладки)"""
+    user = get_user(message.from_user.id)
+    await message.answer(
+        f"📊 <b>Ваш баланс:</b> {user['balance']:,} so'm\n"
+        f"👤 <b>ID:</b> {message.from_user.id}\n"
+        f"📝 <b>Username:</b> @{message.from_user.username or 'Не указан'}",
+        parse_mode="HTML"
+    )
 
 @dp.message(F.text.startswith('/reject'))
 async def reject_handler(message: Message):
@@ -592,7 +621,7 @@ async def handle_text(message: Message):
             admin_id = int(message.text)
             data = load_all_data()
             
-            if 'admins' not in 
+            if 'admins' not in data:
                 data['admins'] = []
             
             if admin_id not in data['admins']:
