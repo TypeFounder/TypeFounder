@@ -573,6 +573,22 @@ function loadData() {
     if (saved) userData = JSON.parse(saved);
 }
 
+// ============================================
+// 🔄 КНОПКА ОБНОВЛЕНИЯ БАЛАНСА
+// ============================================
+function refreshBalance() {
+    console.log('🔄 Manual balance refresh...');
+    loadUserBalance();
+    
+    const btn = document.querySelector('.refresh-btn');
+    if (btn) {
+        btn.style.transform = 'rotate(360deg)';
+        setTimeout(() => {
+            btn.style.transform = 'rotate(0deg)';
+        }, 500);
+    }
+}
+
 function switchTab(tab) {
     document.querySelectorAll('.tab-content').forEach(t => t.classList.remove('active'));
     document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
@@ -607,40 +623,6 @@ function addBalance() {
 
 function closeApp() {
     tg.close();
-}
-
-function buyPremium() {
-    const premiumPrice = 50000;
-    
-    if (userBalance < premiumPrice) {
-        tg.showAlert("❌ Недостаточно средств!\n\nПополните баланс.");
-        return;
-    }
-    
-    tg.sendData(JSON.stringify({
-        type: 'premium',
-        price: premiumPrice,
-        timestamp: new Date().toISOString()
-    }));
-    
-    tg.showAlert("✅ Telegram Premium активирован!\n\n💰 " + premiumPrice.toLocaleString() + " so'm");
-}
-
-// ============================================
-// 🔄 КНОПКА ОБНОВЛЕНИЯ БАЛАНСА
-// ============================================
-function refreshBalance() {
-    console.log('🔄 Manual balance refresh...');
-    loadUserBalance();
-    
-    // Анимация кнопки
-    const btn = document.querySelector('.refresh-btn');
-    if (btn) {
-        btn.style.transform = 'rotate(360deg)';
-        setTimeout(() => {
-            btn.style.transform = 'rotate(0deg)';
-        }, 500);
-    }
 }
 
 tg.ready();
