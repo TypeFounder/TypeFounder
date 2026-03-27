@@ -43,6 +43,44 @@
                 </button>
             </div>
             
+                         <!-- Кнопка поддержки -->
+            <div class="support-link" onclick="openSupport()">
+                <span>💬</span>
+                <span>Служба поддержки</span>
+            </div>
+
+            <style>
+            .support-link {
+                display: flex;
+                align-items: center;
+                justify-content: center;
+                gap: 8px;
+                padding: 10px 16px;
+                background: rgba(91, 155, 213, 0.15);
+                border: 1px solid rgba(91, 155, 213, 0.3);
+                border-radius: 10px;
+                margin: 12px 0;
+                cursor: pointer;
+                transition: all 0.3s;
+            }
+            .support-link:hover {
+                background: rgba(91, 155, 213, 0.25);
+            }
+            .support-link span {
+                color: #5b9bd5;
+                font-size: 14px;
+                font-weight: 600;
+            }
+            </style>
+
+            <script>
+            function openSupport() {
+                window.open('https://t.me/stars_support_manager', '_blank');
+            }
+            </script>
+
+            <div class="language-switcher">
+
             <div class="tab-buttons">
                 <button class="tab-btn active" data-tab="stars" onclick="switchTab('stars')">Stars</button>
                 <button class="tab-btn" data-tab="gift" onclick="switchTab('gift')">Gift</button>

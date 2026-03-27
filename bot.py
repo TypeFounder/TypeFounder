@@ -5,10 +5,9 @@ import os
 from datetime import datetime
 from aiogram import Bot, Dispatcher, F, types
 from aiogram.filters import Command, CommandStart
-from aiogram.types import WebAppInfo, Message
+from aiogram.types import WebAppInfo, Message, FSInputFile
 from aiogram.utils.keyboard import InlineKeyboardBuilder
 from config import BOT_TOKEN, ADMIN_ID, WEBAPP_URL
-
 from database import (
     get_user, update_user, deduct_balance, add_balance,
     create_topup_request, get_pending_topups, approve_topup, reject_topup,
@@ -27,9 +26,7 @@ def load_all_data():
     try:
         if os.path.exists(DATA_FILE):
             with open(DATA_FILE, 'r', encoding='utf-8') as f:
-                data = json.load(f)
-                logger.info(f"Loaded data: {data.get('admin_settings', {}).get('payment_details', 'No payment details')[:50]}...")
-                return data
+                return json.load(f)
     except Exception as e:
         logger.error(f"Error loading data: {e}")
     return {'admins': []}
@@ -38,7 +35,6 @@ def save_all_data(data):
     try:
         with open(DATA_FILE, 'w', encoding='utf-8') as f:
             json.dump(data, f, ensure_ascii=False, indent=2)
-        logger.info("Data saved successfully")
     except Exception as e:
         logger.error(f"Error saving data: {e}")
 
@@ -52,6 +48,9 @@ async def cmd_start(message: Message):
     user = get_user(message.from_user.id)
     update_user(message.from_user.id, {'username': message.from_user.username or ''})
     
+    # Отправляем красивую картинку
+    image_url = "https://images.unsplash.com/photo-1611162617474-5b21e879e113?w=800"
+    
     builder = InlineKeyboardBuilder()
     builder.button(text="⭐ Открыть Uz Give", web_app=WebAppInfo(url=WEBAPP_URL))
     builder.button(text="💬 Поддержка", callback_data="support")
@@ -61,10 +60,14 @@ async def cmd_start(message: Message):
     
     builder.adjust(1)
     
-    await message.answer(
-        f"🎁 <b>Добро пожаловать в Uz Give!</b>\n\n"
-        f"👤 <b>Ваш баланс:</b> {user['balance']:,} so'm\n\n"
-        f"Покупайте Telegram Stars и подарки.",
+    await message.answer_photo(
+        photo=image_url,
+        caption=(
+            f"🎁 <b>Добро пожаловать в Uz Give!</b>\n\n"
+            f"👤 <b>Ваш баланс:</b> {user['balance']:,} so'm\n\n"
+            f"Покупайте Telegram Stars, Premium и подарки.\n\n"
+            f"Нажмите кнопку ниже:"
+        ),
         reply_markup=builder.as_markup(),
         parse_mode="HTML"
     )
@@ -87,6 +90,7 @@ async def admin_panel(callback: types.CallbackQuery):
     
     builder = InlineKeyboardBuilder()
     builder.button(text="💰 Курс звёзд", callback_data="admin_star_rate")
+    builder.button(text="💎 Telegram Premium", callback_data="admin_premium")
     builder.button(text="🎁 Подарки", callback_data="admin_gifts")
     builder.button(text="💳 Реквизиты", callback_data="admin_payment")
     builder.button(text="⏳ Заявки", callback_data="admin_topups")
@@ -99,6 +103,27 @@ async def admin_panel(callback: types.CallbackQuery):
         reply_markup=builder.as_markup(),
         parse_mode="HTML"
     )
+
+@dp.callback_query(F.data == "admin_premium")
+async def admin_premium(callback: types.CallbackQuery):
+    if callback.from_user.id != ADMIN_ID and not await is_admin(callback.from_user.id):
+        await callback.answer("❌ Доступ запрещён", show_alert=True)
+        return
+    
+    settings = get_admin_settings()
+    premium_price = settings.get('premium_price', 50000)
+    
+    text = f"💎 <b>Telegram Premium:</b>\n\n"
+    text += f"Цена: {premium_price:,} so'm\n\n"
+    text += f"<b>Чтобы изменить:</b>\n"
+    text += f"Отправьте новую цену числом\n"
+    text += f"Пример: <code>45000</code>"
+    
+    builder = InlineKeyboardBuilder()
+    builder.button(text="🔙 Назад", callback_data="admin_panel")
+    builder.adjust(1)
+    
+    await callback.message.edit_text(text, reply_markup=builder.as_markup(), parse_mode="HTML")
 
 @dp.callback_query(F.data == "admin_manage")
 async def admin_manage(callback: types.CallbackQuery):
@@ -308,9 +333,7 @@ async def handle_text(message: Message):
     
     try:
         logger.info(f"Admin message received: {message.text}")
-        logger.info(f"From user: {message.from_user.id}, Admin ID: {ADMIN_ID}")
         
-        # Проверяем, это ID админа (число больше 100000000)
         if message.text.isdigit() and int(message.text) > 100000000:
             admin_id = int(message.text)
             data = load_all_data()
@@ -327,25 +350,29 @@ async def handle_text(message: Message):
                 await message.answer(f"⚠️ Этот пользователь уже админ")
             return
         
-        # Проверяем, это число (курс звёзд)
         if message.text.isdigit():
-            rate = int(message.text)
+            value = int(message.text)
+            
+            # Проверяем контекст (курс или премиум)
             settings = get_admin_settings()
-            settings['star_rate'] = rate
-            update_admin_settings({'star_rate': rate})
-            await message.answer(f"✅ Курс обновлён: 1 звезда = {rate:,} so'm")
+            
+            # Если цена похожа на премиум (больше 10000)
+            if value > 10000:
+                settings['premium_price'] = value
+                update_admin_settings({'premium_price': value})
+                await message.answer(f"✅ Premium обновлён: {value:,} so'm")
+            else:
+                # Это курс звёзд
+                settings['star_rate'] = value
+                update_admin_settings({'star_rate': value})
+                await message.answer(f"✅ Курс обновлён: 1 звезда = {value:,} so'm")
         else:
-            # Это реквизиты - обновляем напрямую
-            logger.info(f"Updating payment details to: {message.text}")
+            # Это реквизиты
             data = load_all_data()
             data['admin_settings']['payment_details'] = message.text
             save_all_data(data)
-            logger.info(f"Payment details saved: {data['admin_settings']['payment_details']}")
+            logger.info(f"Payment details updated to: {message.text}")
             await message.answer("✅ Реквизиты обновлены!")
-            
-            # Проверяем что сохранилось
-            check_data = load_all_data()
-            logger.info(f"Verification - Payment details: {check_data['admin_settings']['payment_details']}")
     except Exception as e:
         logger.error(f"Error in handle_text: {e}")
         await message.answer(f"❌ Ошибка: {e}")
@@ -376,17 +403,14 @@ async def process_webapp_data(message: Message):
             
             settings = get_admin_settings()
             
-            # Получаем список всех админов
             admin_list = [ADMIN_ID]
-            data_file = 'data.json'
-            if os.path.exists(data_file):
-                with open(data_file, 'r', encoding='utf-8') as f:
+            if os.path.exists(DATA_FILE):
+                with open(DATA_FILE, 'r', encoding='utf-8') as f:
                     data_json = json.load(f)
                     admin_list.extend(data_json.get('admins', []))
             
             logger.info(f"Sending to admins: {admin_list}")
             
-            # Отправляем всем админам
             for admin_id in set(admin_list):
                 try:
                     await bot.send_message(
@@ -427,6 +451,16 @@ async def process_webapp_data(message: Message):
                 await message.answer(f"✅ Подарок {data['gift']}!\n💰 {data['price']:,} so'm")
             else:
                 await message.answer("❌ Недостаточно средств")
+        
+        elif data.get('type') == 'premium':
+            settings = get_admin_settings()
+            premium_price = settings.get('premium_price', 50000)
+            
+            if deduct_balance(message.from_user.id, premium_price):
+                add_purchase(message.from_user.id, 'premium', 0, premium_price, 'Telegram Premium')
+                await message.answer(f"✅ Telegram Premium активирован!\n💰 {premium_price:,} so'm")
+            else:
+                await message.answer("❌ Недостаточно средств\nПополните баланс")
     except Exception as e:
         logger.error(f"Error in process_webapp_data: {e}")
 

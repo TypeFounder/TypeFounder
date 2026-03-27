@@ -1,0 +1,7 @@
+2026-03-27 15:23:18,382 - __main__ - INFO - Starting bot...
+2026-03-27 15:23:18,382 - aiogram.dispatcher - INFO - Start polling
+2026-03-27 15:23:18,771 - aiogram.dispatcher - INFO - Run polling for bot @jninuihuheu9vje9uvjefubot id=8612566084 - 'Test Mini APP'
+2026-03-27 15:23:32,549 - database - INFO - Data loaded from data.json
+2026-03-27 15:23:32,549 - database - INFO - Data loaded from data.json
+2026-03-27 15:23:32,550 - database - INFO - Data saved to data.json
+2026-03-27 15:23:33,063 - aiogram.event - INFO - Update id=301594490 is handled. Duration 515 ms by bot id=8612566084
