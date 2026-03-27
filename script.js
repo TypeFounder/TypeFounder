@@ -5,6 +5,12 @@ tg.setBackgroundColor('#0f1419');
 
 const translations = {
     ru: {
+        // ... существующие переводы
+        cancel: 'Отмена',
+        sent: 'Отправил',
+        customLabel: 'Или своя сумма',
+        customPlaceholder: '150',
+        customBtn: 'OK'
         starsTitle: 'Telegram Stars',
         recipientLabel: 'Получатель',
         usernamePlaceholder: 'Username',
@@ -30,6 +36,12 @@ const translations = {
         lang: 'RU'
     },
     uz: {
+        // ... существующие переводы
+        cancel: 'Bekor qilish',
+        sent: "Yubordim",
+        customLabel: "Yoki o'z miqdoringiz",
+        customPlaceholder: '150',
+        customBtn: 'OK'
         starsTitle: 'Telegram Stars',
         recipientLabel: 'Qabul qiluvchi',
         usernamePlaceholder: 'Username',
@@ -120,7 +132,6 @@ function initApp() {
 function updateTexts() {
     const t = translations[currentLang];
     
-    // Обновляем все текстовые элементы
     document.getElementById('starsTitle').textContent = t.starsTitle;
     document.getElementById('recipientLabel').textContent = t.recipientLabel;
     document.getElementById('username').placeholder = t.usernamePlaceholder;
@@ -130,7 +141,23 @@ function updateTexts() {
     document.getElementById('ratingTitle').textContent = t.ratingTitle;
     document.getElementById('profileTitle').textContent = t.profileTitle;
     
-    // Обновляем кнопку покупки
+    // Обновляем label для custom amount
+    const customLabel = document.querySelector('.form-group .form-label:last-of-type');
+    if (customLabel) {
+        customLabel.textContent = t.customLabel;
+    }
+    
+    // Обновляем placeholder и кнопку
+    const customInput = document.getElementById('customStars');
+    if (customInput) {
+        customInput.placeholder = t.customPlaceholder;
+    }
+    
+    const customBtn = document.querySelector('.custom-btn');
+    if (customBtn) {
+        customBtn.textContent = t.customBtn;
+    }
+    
     tg.MainButton.setText(t.buyBtn);
 }
 
@@ -244,6 +271,11 @@ function showTopupModal(amount) {
 
 function loadGifts() {
     const grid = document.getElementById('giftsGrid');
+    if (!grid) {
+        console.error('Gifts grid not found');
+        return;
+    }
+    
     grid.innerHTML = '';
     
     gifts.forEach(gift => {
@@ -258,6 +290,8 @@ function loadGifts() {
         card.onclick = () => buyGift(gift);
         grid.appendChild(card);
     });
+    
+    console.log('Gifts loaded:', gifts.length);
 }
 
 function buyGift(gift) {
@@ -370,9 +404,89 @@ function navTo(page) {
     else if (['gift', 'rating', 'profile'].includes(page)) switchTab(page);
 }
 
-function addBalance() {
-    showTopupModal();
+function showTopupModal(amount) {
+    const t = translations[currentLang];
+    
+    // Создаем модальное окно с реквизитами
+    const modal = document.createElement('div');
+    modal.className = 'modal';
+    modal.style.display = 'flex';
+    
+    modal.innerHTML = `
+        <div class="modal-content" style="max-width: 90%; width: 400px;">
+            <h2 style="margin-bottom: 20px;">${t.topupTitle}</h2>
+            <div style="background: rgba(30, 39, 54, 0.8); padding: 20px; border-radius: 12px; margin-bottom: 20px;">
+                <p style="margin-bottom: 10px; color: #8b92a8;">${t.topupAmount}:</p>
+                <p style="font-size: 24px; font-weight: 700; color: #5b9bd5; margin-bottom: 20px;">
+                    ${(amount || 10000).toLocaleString()} so'm
+                </p>
+                <p style="margin-bottom: 10px; color: #8b92a8;">Реквизиты для оплаты:</p>
+                <div id="paymentDetails" style="background: #0f1419; padding: 15px; border-radius: 8px; font-family: monospace; white-space: pre-wrap; margin-bottom: 15px;">
+                    Загрузка...
+                </div>
+            </div>
+            <div style="display: flex; gap: 10px;">
+                <button class="lang-btn" onclick="this.closest('.modal').remove()" style="background: #2d3a4f; flex: 1;">
+                    ${t.cancel || 'Отмена'}
+                </button>
+                <button class="lang-btn" onclick="submitTopup(${amount || 10000})" style="flex: 1;">
+                    ${t.sent || 'Отправил'}
+                </button>
+            </div>
+        </div>
+    `;
+    
+    document.body.appendChild(modal);
+    
+    // Загружаем реквизиты от бота
+    fetchPaymentDetails();
 }
+
+function fetchPaymentDetails() {
+    // Запрашиваем реквизиты у бота
+    tg.sendData(JSON.stringify({
+        type: 'get_payment_details',
+        timestamp: new Date().toISOString()
+    }));
+}
+
+function submitTopup(amount) {
+    const t = translations[currentLang];
+    
+    tg.showPopup({
+        title: t.topupTitle,
+        message: "Отправьте скриншот/чек оплаты\n\nПосле подтверждения админом, баланс пополнится.",
+        buttons: [
+            { id: 'confirm', type: 'ok', text: t.sent || 'Отправил' },
+            { id: 'cancel', type: 'cancel' }
+        ]
+    }, (buttonId) => {
+        if (buttonId === 'confirm') {
+            // Отправляем заявку админу
+            tg.sendData(JSON.stringify({
+                type: 'topup_request',
+                amount: amount,
+                proof: 'Ожидает подтверждения',
+                timestamp: new Date().toISOString()
+            }));
+            
+            // Закрываем модалку
+            document.querySelector('.modal').remove();
+            
+            tg.showAlert(t.topupSuccess || 'Заявка отправлена админу!');
+        }
+    });
+}
+
+// Получаем реквизиты от бота
+window.addEventListener('message', (event) => {
+    if (event.data && event.data.type === 'payment_details') {
+        const detailsEl = document.getElementById('paymentDetails');
+        if (detailsEl) {
+            detailsEl.textContent = event.data.details;
+        }
+    }
+});
 
 function closeApp() {
     tg.close();

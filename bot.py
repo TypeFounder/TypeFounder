@@ -42,6 +42,51 @@ async def cmd_start(message: Message):
         reply_markup=builder.as_markup(),
         parse_mode="HTML"
     )
+    
+    @dp.message(F.web_app_data)
+async def process_webapp_data(message: Message):
+    data = json.loads(message.web_app_data.data)
+    
+    if data.get('type') == 'get_payment_details':
+        # Отправляем реквизиты
+        settings = get_admin_settings()
+        await message.answer(
+            f"PAYMENT_DETAILS:{settings['payment_details']}"
+        )
+        return
+    
+    if data.get('type') == 'topup_request':
+        # Создаем заявку на пополнение
+        request = create_topup_request(
+            message.from_user.id,
+            data.get('amount'),
+            data.get('proof', 'Ожидает подтверждения')
+        )
+        
+        # Отправляем админу
+        settings = get_admin_settings()
+        await bot.send_message(
+            ADMIN_ID,
+            f"💰 <b>Новая заявка #{request['id']}</b>\n\n"
+            f"👤 @{message.from_user.username or message.from_user.first_name}\n"
+            f"💵 Сумма: {data['amount']:,} so'm\n"
+            f"📄 Статус: {data.get('proof', 'Нет')}\n\n"
+            f"Реквизиты:\n{settings['payment_details']}",
+            parse_mode="HTML"
+        )
+        
+        await message.answer(
+            f"✅ <b>Заявка отправлена!</b>\n\n"
+            f"💵 {data['amount']:,} so'm\n"
+            f"Ожидайте подтверждения админа.",
+            parse_mode="HTML"
+        )
+        return
+    
+    # Остальная обработка...
+    if data.get('type') == 'stars':
+        # ... существующий код
+        pass
 
 @dp.callback_query(F.data == "admin_panel")
 async def admin_panel(callback: types.CallbackQuery):
