@@ -9,16 +9,10 @@ def load_data():
         with open(DATA_FILE, 'r', encoding='utf-8') as f:
             return json.load(f)
     return {
-        'admins': [],  # Список ID админов
+        'admins': [],
         'admin_settings': {
-            'star_rate': 200,  # Цена за 1 звезду
-            'star_prices': {
-                50: 10000,
-                75: 14000,
-                100: 18000,
-                250: 42000,
-                500: 80000
-            },
+            'star_rate': 200,
+            'star_prices': {50: 10000, 75: 14000, 100: 18000, 250: 42000, 500: 80000},
             'gifts': [
                 {'id': 1, 'emoji': '🌹', 'name': 'Atirgul', 'stars': 15, 'price': 3000},
                 {'id': 2, 'emoji': '🔥', 'name': 'Olov', 'stars': 20, 'price': 4000},
@@ -42,12 +36,8 @@ def get_user(user_id):
     data = load_data()
     if str(user_id) not in data['users']:
         data['users'][str(user_id)] = {
-            'user_id': user_id,
-            'username': '',
-            'balance': 0,
-            'language': 'uz',
-            'total_spent': 0,
-            'purchases': []
+            'user_id': user_id, 'username': '', 'balance': 0,
+            'language': 'uz', 'total_spent': 0, 'purchases': []
         }
         save_data(data)
     return data['users'][str(user_id)]
@@ -87,7 +77,6 @@ def create_topup_request(user_id, amount, payment_proof, username='Не указ
     }
     data['topup_requests'].append(request)
     save_data(data)
-    print(f"✅ Topup request created: {request}")  # Лог для отладки
     return request
 
 def get_pending_topups():
@@ -118,11 +107,8 @@ def add_purchase(user_id, item_type, stars, price, details=''):
     purchase = {
         'user_id': user_id,
         'username': data['users'].get(str(user_id), {}).get('username', 'Unknown'),
-        'type': item_type,
-        'stars': stars,
-        'price': price,
-        'details': details,
-        'timestamp': datetime.now().isoformat()
+        'type': item_type, 'stars': stars, 'price': price,
+        'details': details, 'timestamp': datetime.now().isoformat()
     }
     data['purchases'].append(purchase)
     if str(user_id) in data['users']:
@@ -140,8 +126,6 @@ def update_admin_settings(settings):
     data = load_data()
     data['admin_settings'].update(settings)
     save_data(data)
-    print(f"✅ Admin settings updated: {settings}")  # Лог для отладки
 
 def get_admin_settings():
-    data = load_data()
-    return data['admin_settings']
+    return load_data()['admin_settings']

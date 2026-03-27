@@ -1,6 +1,7 @@
 import asyncio
 import logging
 import json
+import os
 from datetime import datetime
 from aiogram import Bot, Dispatcher, F, types
 from aiogram.filters import Command, CommandStart
@@ -19,16 +20,30 @@ logger = logging.getLogger(__name__)
 bot = Bot(token=BOT_TOKEN)
 dp = Dispatcher()
 
+DATA_FILE = 'data.json'
+
+def load_all_data():
+    if os.path.exists(DATA_FILE):
+        with open(DATA_FILE, 'r', encoding='utf-8') as f:
+            return json.load(f)
+    return {'admins': []}
+
+def save_all_data(data):
+    with open(DATA_FILE, 'w', encoding='utf-8') as f:
+        json.dump(data, f, ensure_ascii=False, indent=2)
+
+async def is_admin(user_id):
+    data = load_all_data()
+    admins = data.get('admins', [])
+    return user_id in admins
+
 @dp.message(CommandStart())
 async def cmd_start(message: Message):
     user = get_user(message.from_user.id)
     update_user(message.from_user.id, {'username': message.from_user.username or ''})
     
     builder = InlineKeyboardBuilder()
-    builder.button(
-        text="⭐ Открыть Uz Give",
-        web_app=WebAppInfo(url=WEBAPP_URL)
-    )
+    builder.button(text="⭐ Открыть Uz Give", web_app=WebAppInfo(url=WEBAPP_URL))
     builder.button(text="💬 Поддержка", callback_data="support")
     
     if message.from_user.id == ADMIN_ID or await is_admin(message.from_user.id):
@@ -49,20 +64,10 @@ async def support_handler(callback: types.CallbackQuery):
     await callback.message.answer(
         "💬 <b>Поддержка</b>\n\n"
         "По всем вопросам обращайтесь:\n"
-        "@stars_support_manager",
+        "<a href='https://t.me/stars_support_manager'>@stars_support_manager</a>",
         parse_mode="HTML"
     )
     await callback.answer()
-
-async def is_admin(user_id):
-    """Проверка, является ли пользователь админом"""
-    data_file = 'data.json'
-    if os.path.exists(data_file):
-        with open(data_file, 'r', encoding='utf-8') as f:
-            data = json.load(f)
-            admins = data.get('admins', [])
-            return user_id in admins
-    return False
 
 @dp.callback_query(F.data == "admin_panel")
 async def admin_panel(callback: types.CallbackQuery):
@@ -91,12 +96,8 @@ async def admin_manage(callback: types.CallbackQuery):
         await callback.answer("❌ Только главный админ", show_alert=True)
         return
     
-    # Загружаем список админов
-    data_file = 'data.json'
-    if os.path.exists(data_file):
-        with open(data_file, 'r', encoding='utf-8') as f:
-            data = json.load(f)
-            admins = data.get('admins', [])
+    data = load_all_data()
+    admins = data.get('admins', [])
     
     text = "👥 <b>Управление админами</b>\n\n"
     text += f"Главный админ: @{(await bot.get_me()).username}\n\n"
@@ -105,14 +106,16 @@ async def admin_manage(callback: types.CallbackQuery):
     for admin_id in admins:
         try:
             user = await bot.get_chat(admin_id)
-            text += f"• @{user.username or user.first_name}\n"
+            username = user.username or user.first_name or "Unknown"
+            text += f"• @{username} (ID: {admin_id})\n"
         except:
             text += f"• ID: {admin_id}\n"
     
     if not admins:
         text += "Нет админов\n"
     
-    text += "\nЧтобы добавить админа, отправьте его ID:\n"
+    text += "\n<b>Чтобы добавить админа:</b>\n"
+    text += "Отправьте ID пользователя\n"
     text += "Пример: <code>123456789</code>"
     
     builder = InlineKeyboardBuilder()
@@ -153,8 +156,7 @@ async def admin_change_rate(callback: types.CallbackQuery):
     await callback.message.answer(
         "💰 <b>Изменение курса</b>\n\n"
         "Отправьте цену за 1 звезду (в сумах)\n\n"
-        "Пример: <code>200</code> (значит 1 звезда = 200 so'm)\n"
-        "Пример: <code>150</code> (значит 1 звезда = 150 so'm)",
+        "Пример: <code>200</code>",
         parse_mode="HTML"
     )
     await callback.answer()
@@ -184,9 +186,10 @@ async def admin_payment(callback: types.CallbackQuery):
     
     settings = get_admin_settings()
     await callback.message.answer(
-        "💳 <b>Реквизиты:</b>\n\n"
+        "💳 <b>Текущие реквизиты:</b>\n\n"
         f"<code>{settings['payment_details']}</code>\n\n"
-        "Отправьте новые реквизиты:",
+        "<b>Чтобы обновить:</b>\n"
+        "Отправьте новые реквизиты сообщением",
         parse_mode="HTML"
     )
     await callback.answer()
@@ -285,7 +288,6 @@ async def admin_stats(callback: types.CallbackQuery):
 
 @dp.message(F.text)
 async def handle_text(message: Message):
-    # Проверяем админов
     is_admin_user = (message.from_user.id == ADMIN_ID or await is_admin(message.from_user.id))
     
     if not is_admin_user:
@@ -295,40 +297,31 @@ async def handle_text(message: Message):
         return
     
     try:
-        # Проверяем, это число (курс) или текст (реквизиты) или ID админа
+        if message.text.isdigit() and int(message.text) > 100000000:
+            admin_id = int(message.text)
+            data = load_all_data()
+            
+            if 'admins' not in data:
+                data['admins'] = []
+            
+            if admin_id not in data['admins']:
+                data['admins'].append(admin_id)
+                save_all_data(data)
+                await message.answer(f"✅ Админ добавлен: ID {admin_id}")
+            else:
+                await message.answer(f"⚠️ Этот пользователь уже админ")
+            return
+        
         if message.text.isdigit():
-            value = int(message.text)
-            
-            # Если это ID для добавления админа (больше 100000000)
-            if value > 100000000:
-                # Добавляем админа
-                data_file = 'data.json'
-                if os.path.exists(data_file):
-                    with open(data_file, 'r', encoding='utf-8') as f:
-                        data = json.load(f)
-                    
-                    if 'admins' not in data:
-                        data['admins'] = []
-                    
-                    if value not in data['admins']:
-                        data['admins'].append(value)
-                        with open(data_file, 'w', encoding='utf-8') as f:
-                            json.dump(data, f, ensure_ascii=False, indent=2)
-                        
-                        await message.answer(f"✅ Админ добавлен: ID {value}")
-                    else:
-                        await message.answer(f"⚠️ Этот пользователь уже админ")
-                return
-            
-            # Это курс звёзд
+            rate = int(message.text)
             settings = get_admin_settings()
-            settings['star_rate'] = value
-            update_admin_settings({'star_rate': value})
-            await message.answer(f"✅ Курс обновлён: 1 звезда = {value:,} so'm")
+            settings['star_rate'] = rate
+            update_admin_settings({'star_rate': rate})
+            await message.answer(f"✅ Курс обновлён: 1 звезда = {rate:,} so'm")
         else:
-            # Это реквизиты
             update_admin_settings({'payment_details': message.text})
             await message.answer("✅ Реквизиты обновлены!")
+            logger.info(f"Payment details updated to: {message.text}")
     except Exception as e:
         logger.error(f"Error in handle_text: {e}")
         await message.answer(f"❌ Ошибка: {e}")
@@ -338,15 +331,12 @@ async def process_webapp_data(message: Message):
     data = json.loads(message.web_app_data.data)
     logger.info(f"WebApp data received: {data}")
     
-    # Запрос реквизитов
     if data.get('type') == 'get_payment_details':
         settings = get_admin_settings()
-        await message.answer(
-            f"PAYMENT_DETAILS:{settings['payment_details']}"
-        )
+        logger.info(f"Sending payment details: {settings['payment_details']}")
+        await message.answer(settings['payment_details'])
         return
     
-    # Заявка на пополнение
     if data.get('type') == 'topup_request':
         username = data.get('username', 'Не указан')
         amount = data.get('amount', 0)
@@ -354,26 +344,19 @@ async def process_webapp_data(message: Message):
         
         logger.info(f"Creating topup request: user={message.from_user.id}, amount={amount}, username={username}, proof={proof}")
         
-        request = create_topup_request(
-            message.from_user.id,
-            amount,
-            proof,
-            username
-        )
+        request = create_topup_request(message.from_user.id, amount, proof, username)
         
         logger.info(f"Topup request created: {request}")
         
         settings = get_admin_settings()
         
-        # Отправляем заявку ГЛАВНОМУ админу и всем админам
         admin_list = [ADMIN_ID]
-        data_file = 'data.json'
-        if os.path.exists(data_file):
-            with open(data_file, 'r', encoding='utf-8') as f:
+        if os.path.exists(DATA_FILE):
+            with open(DATA_FILE, 'r', encoding='utf-8') as f:
                 data_json = json.load(f)
                 admin_list.extend(data_json.get('admins', []))
         
-        for admin_id in set(admin_list):  # set чтобы избежать дубликатов
+        for admin_id in set(admin_list):
             try:
                 await bot.send_message(
                     admin_id,
@@ -381,29 +364,25 @@ async def process_webapp_data(message: Message):
                     f"👤 <b>Пользователь:</b> @{username}\n"
                     f"🔢 <b>ID:</b> <code>{message.from_user.id}</code>\n"
                     f"💵 <b>Сумма:</b> {amount:,} so'm\n"
-                    f"📄 <b>Чек/транзакция:</b> {proof}\n"
+                    f"📄 <b>Чек:</b> {proof}\n"
                     f"⏰ <b>Время:</b> {datetime.now().strftime('%d.%m.%Y %H:%M')}\n\n"
-                    f"Реквизиты админа:\n{settings['payment_details']}\n\n"
-                    f"Выберите действие:",
+                    f"Реквизиты:\n{settings['payment_details']}",
                     parse_mode="HTML"
                 )
                 logger.info(f"Topup request sent to admin {admin_id}")
             except Exception as e:
                 logger.error(f"Failed to send to admin {admin_id}: {e}")
         
-        # Подтверждение пользователю
         await message.answer(
             f"✅ <b>Заявка отправлена!</b>\n\n"
             f"💵 Сумма: {amount:,} so'm\n"
             f"👤 Username: @{username}\n"
             f"📄 Чек: {proof}\n\n"
-            f"Ожидайте подтверждения админа.\n"
-            f"После одобрения баланс пополнится автоматически.",
+            f"Ожидайте подтверждения админа.",
             parse_mode="HTML"
         )
         return
     
-    # Покупка звёзд
     if data.get('type') == 'stars':
         if deduct_balance(message.from_user.id, data['price']):
             add_purchase(message.from_user.id, 'stars', data['stars'], data['price'])
@@ -411,7 +390,6 @@ async def process_webapp_data(message: Message):
         else:
             await message.answer("❌ Недостаточно средств\nПополните баланс")
     
-    # Покупка подарка
     elif data.get('type') == 'gift':
         if deduct_balance(message.from_user.id, data['price']):
             add_purchase(message.from_user.id, 'gift', data['stars'], data['price'], data['gift'])
