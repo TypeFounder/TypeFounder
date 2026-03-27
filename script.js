@@ -104,6 +104,11 @@ window.addEventListener('message', function(event) {
                 detailsEl.textContent = details;
             }
         }
+        
+        if (event.data.startsWith('USER_REQUESTS:')) {
+            const requestsData = JSON.parse(event.data.replace('USER_REQUESTS:', ''));
+            displayRequests(requestsData);
+        }
     }
 });
 
@@ -123,10 +128,13 @@ document.addEventListener('DOMContentLoaded', function() {
 });
 
 function selectLanguage(lang) {
+    console.log('Language selected:', lang);
     currentLang = lang;
     localStorage.setItem('language', lang);
     const modal = document.getElementById('languageModal');
-    if (modal) modal.style.display = 'none';
+    if (modal) {
+        modal.style.display = 'none';
+    }
     initApp();
 }
 
@@ -448,6 +456,37 @@ function refreshBalance() {
         btn.style.transform = 'rotate(360deg)';
         setTimeout(function() { btn.style.transform = 'rotate(0deg)'; }, 500);
     }
+}
+
+function displayRequests(requests) {
+    const requestsList = document.getElementById('requestsList');
+    if (!requests || requests.length === 0) {
+        requestsList.innerHTML = '<div style="text-align: center; padding: 40px; color: #8b92a8;"><div style="font-size: 48px; margin-bottom: 16px;">📭</div><div>Нет заявок</div></div>';
+        return;
+    }
+    requests.reverse();
+    let html = '';
+    requests.forEach(function(req) {
+        const statusClass = req.status;
+        const statusText = {
+            'pending': '⏳ Ожидает',
+            'approved': '✅ Одобрена',
+            'rejected': '❌ Отклонена'
+        }[req.status] || req.status;
+        const date = new Date(req.created_at).toLocaleString('ru-RU');
+        html += '<div class="request-card">' +
+            '<div class="request-header"><span class="request-id">#' + req.id + '</span><span class="request-amount">' + req.amount.toLocaleString() + " so'm</span></div>" +
+            '<div class="request-status ' + statusClass + '">' + statusText + '</div>' +
+            '<div class="request-proof">📄 Чек: ' + (req.payment_proof || 'Не загружен') + '</div>' +
+            '<div class="request-date">🕐 ' + date + '</div>' +
+            (req.status === 'pending' ? '<button class="upload-proof-btn" onclick="uploadProof(' + req.id + ')">📸 Загрузить чек</button>' : '') +
+            '</div>';
+    });
+    requestsList.innerHTML = html;
+}
+
+function uploadProof(requestId) {
+    tg.showAlert('📸 Загрузка чека\n\nОтправьте фото/скриншот чека боту в личные сообщения.\n\nЧек будет автоматически привязан к заявке #' + requestId);
 }
 
 tg.ready();
