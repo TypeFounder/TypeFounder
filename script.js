@@ -237,16 +237,7 @@ function buyStars() {
     }
     const price = starPrices[selectedStars] || (selectedStars * 200);
     if (userBalance < price) {
-        tg.showPopup({
-            title: translations[currentLang].insufficientBalance,
-            message: `${userBalance} / ${price} so'm\n\nPopolasizmi?`,
-            buttons: [
-                { id: 'topup', type: 'ok', text: 'Ha' },
-                { id: 'cancel', type: 'cancel' }
-            ]
-        }, (btn) => {
-            if (btn === 'topup') showTopupModal(price);
-        });
+        tg.showAlert(translations[currentLang].insufficientBalance);
         return;
     }
     addToHistory('stars', selectedStars, price, username);
@@ -258,15 +249,7 @@ function buyStars() {
         currency: 'UZS',
         timestamp: new Date().toISOString()
     }));
-    tg.showPopup({
-        title: "Muvaffaqiyatli!",
-        message: `${selectedStars} ⭐\n${price.toLocaleString()} so'm`,
-        buttons: [{ id: 'ok', type: 'ok' }]
-    }, () => {
-        userBalance -= price;
-        updateBalance();
-        tg.close();
-    });
+    tg.showAlert("✅ Muvaffaqiyatli!\n\n" + selectedStars + " ⭐\n" + price.toLocaleString() + " so'm");
 }
 
 function showTopupModal(amount) {
@@ -421,7 +404,7 @@ function submitTopupRequest(amount) {
     if (modal) modal.remove();
     
     tg.showAlert(
-        '✅ <b>Заявка отправлена!</b>\n\n' +
+        '✅ Заявка отправлена!\n\n' +
         '💰 Сумма: ' + amount.toLocaleString() + " so'm\n" +
         '👤 Username: @' + username + '\n' +
         '📄 Чек: ' + proof + '\n\n' +
@@ -460,14 +443,7 @@ function buyGift(gift) {
         price: gift.price,
         timestamp: new Date().toISOString()
     }));
-    tg.showPopup({
-        title: "Muvaffaqiyatli!",
-        message: `${gift.name[currentLang]}\n${gift.price.toLocaleString()} so'm`,
-        buttons: [{ id: 'ok', type: 'ok' }]
-    }, () => {
-        userBalance -= gift.price;
-        updateBalance();
-    });
+    tg.showAlert("✅ Muvaffaqiyatli!\n\n" + gift.name[currentLang] + "\n" + gift.price.toLocaleString() + " so'm");
 }
 
 function loadRating() {
