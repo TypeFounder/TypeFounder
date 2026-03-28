@@ -24,20 +24,9 @@ const translations = {
         insufficientBalance: 'Недостаточно средств',
         topupTitle: 'Пополнение',
         topupAmount: 'Сумма',
-        topupProof: 'Чек',
-        topupSubmit: 'Отправить',
-        topupSuccess: 'Заявка отправлена',
         cancel: 'Отмена',
         sent: 'Отправил',
-        lang: 'RU',
-        menu: 'Меню',
-        gift: 'Подарки',
-        rating: 'Рейтинг',
-        profile: 'Профиль',
-        stars: 'Stars',
-        jami: 'Всего',
-        xaridlar: 'Покупок',
-        tarix: 'История'
+        lang: 'RU'
     },
     uz: {
         starsTitle: 'Telegram Stars',
@@ -59,20 +48,9 @@ const translations = {
         insufficientBalance: "Mablag' yetarli emas",
         topupTitle: "Balansni to'ldirish",
         topupAmount: 'Summa',
-        topupProof: 'Chek',
-        topupSubmit: "Yuborish",
-        topupSuccess: "Zayavka yuborildi",
         cancel: 'Bekor qilish',
         sent: "Yubordim",
-        lang: 'UZ',
-        menu: 'Menyu',
-        gift: 'Gift',
-        rating: 'Reyting',
-        profile: 'Profil',
-        stars: 'Stars',
-        jami: 'Jami',
-        xaridlar: 'Xaridlar',
-        tarix: 'Tarix'
+        lang: 'UZ'
     }
 };
 
@@ -98,6 +76,130 @@ let selectedStars = 50;
 let userBalance = 0;
 let userData = { history: [], totalSpent: 0, totalPurchases: 0 };
 let paymentDetails = 'Karta: 8600 1234 5678 9012\nTelefon: +998 90 123 45 67';
+
+// ============================================
+// 🌐 ГЛОБАЛЬНЫЕ ФУНКЦИИ (ОБЯЗАТЕЛЬНО!)
+// ============================================
+
+window.selectLanguage = function(lang) {
+    console.log('🌐 Выбор языка:', lang);
+    currentLang = lang;
+    localStorage.setItem('language', lang);
+    const modal = document.getElementById('languageModal');
+    if (modal) modal.style.display = 'none';
+    initApp();
+};
+
+window.toggleLanguage = function() {
+    currentLang = currentLang === 'uz' ? 'ru' : 'uz';
+    localStorage.setItem('language', currentLang);
+    const btn = document.getElementById('currentLangText');
+    if (btn) btn.textContent = translations[currentLang].lang;
+    initApp();
+};
+
+window.refreshBalance = function() {
+    console.log('🔄 Обновление...');
+    loadUserBalance();
+    const btn = document.querySelector('.refresh-btn');
+    if (btn) {
+        btn.style.transform = 'rotate(360deg)';
+        setTimeout(function() { btn.style.transform = 'rotate(0deg)'; }, 500);
+    }
+};
+
+window.closeApp = function() {
+    tg.close();
+};
+
+window.openSupport = function() {
+    tg.openTelegramLink('https://t.me/stars_support_manager');
+};
+
+window.setSelf = function() {
+    const user = tg.initDataUnsafe.user;
+    if (user) {
+        document.getElementById('username').value = user.username || user.first_name;
+    }
+};
+
+window.selectStars = function(amount) {
+    selectedStars = amount;
+    document.getElementById('starsAmount').value = amount;
+    updatePriceDisplay();
+    document.querySelectorAll('.quick-btn').forEach(function(btn) {
+        btn.classList.toggle('active', parseInt(btn.textContent) === amount);
+    });
+    tg.MainButton.show();
+};
+
+window.setCustomStars = function() {
+    const custom = parseInt(document.getElementById('customStars').value);
+    if (custom && custom > 0) {
+        selectedStars = custom;
+        document.getElementById('starsAmount').value = custom;
+        const price = custom * 200;
+        document.getElementById('priceDisplay').textContent = price.toLocaleString() + " so'm";
+        document.querySelectorAll('.quick-btn').forEach(function(btn) {
+            btn.classList.remove('active');
+        });
+        tg.MainButton.show();
+    }
+};
+
+window.navTo = function(page) {
+    document.querySelectorAll('.nav-item').forEach(function(item) { item.classList.remove('active'); });
+    const navMap = { 'menu': 0, 'premium': 1, 'rating': 2, 'profile': 3 };
+    const index = navMap[page];
+    if (index !== undefined) {
+        const navItems = document.querySelectorAll('.nav-item');
+        if (navItems[index]) navItems[index].classList.add('active');
+    }
+    if (page === 'menu') {
+        switchTab('stars');
+    } else if (page === 'premium') {
+        switchTab('premium');
+    } else if (page === 'rating') {
+        switchTab('rating');
+    } else if (page === 'profile') {
+        switchTab('profile');
+    }
+};
+
+window.switchTab = function(tab) {
+    document.querySelectorAll('.tab-content').forEach(function(t) { t.classList.remove('active'); });
+    const tabEl = document.getElementById(tab + 'Tab');
+    if (tabEl) tabEl.classList.add('active');
+    if (tab === 'requests') {
+        loadUserRequests();
+    }
+};
+
+window.buyPremiumPlan = function(months, price) {
+    if (userBalance < price) {
+        tg.showAlert("❌ Недостаточно средств!\n\nПополните баланс.");
+        return;
+    }
+    
+    const monthText = months === 3 ? '3 месяца' : months === 6 ? '6 месяцев' : '12 месяцев';
+    
+    tg.showConfirm(
+        '💎 Оформить Telegram Premium на ' + monthText + '?\n\n💰 Стоимость: ' + price.toLocaleString() + " so'm",
+        function(confirmed) {
+            if (confirmed) {
+                tg.sendData(JSON.stringify({
+                    type: 'premium',
+                    months: months,
+                    price: price,
+                    timestamp: new Date().toISOString()
+                }));
+                
+                setTimeout(function() { loadUserBalance(); }, 1000);
+                tg.showAlert('✅ Telegram Premium активирован на ' + monthText + '!\n\n💰 ' + price.toLocaleString() + " so'm");
+            }
+        }
+    );
+};
 
 // ============================================
 // 📬 СЛУШАЕМ ОТВЕТЫ ОТ БОТА
@@ -127,6 +229,9 @@ window.addEventListener('message', function(event) {
     }
 });
 
+// ============================================
+// 🎯 ИНИЦИАЛИЗАЦИЯ
+// ============================================
 document.addEventListener('DOMContentLoaded', function() {
     console.log('🚀 DOM загружен');
     
@@ -144,23 +249,6 @@ document.addEventListener('DOMContentLoaded', function() {
     loadData();
     loadUserBalance();
 });
-
-function selectLanguage(lang) {
-    console.log('🌐 Выбор языка:', lang);
-    currentLang = lang;
-    localStorage.setItem('language', lang);
-    const modal = document.getElementById('languageModal');
-    if (modal) modal.style.display = 'none';
-    initApp();
-}
-
-function toggleLanguage() {
-    currentLang = currentLang === 'uz' ? 'ru' : 'uz';
-    localStorage.setItem('language', currentLang);
-    const btn = document.getElementById('currentLangText');
-    if (btn) btn.textContent = translations[currentLang].lang;
-    initApp();
-}
 
 function initApp() {
     updateTexts();
@@ -182,11 +270,7 @@ function updateTexts() {
         'amountLabel': t.amountLabel,
         'giftTitle': t.giftTitle,
         'ratingTitle': t.ratingTitle,
-        'profileTitle': t.profileTitle,
-        'navMenu': t.menu,
-        'navGift': t.gift,
-        'navRating': t.rating,
-        'navProfile': t.profile
+        'profileTitle': t.profileTitle
     };
     for (const [id, text] of Object.entries(textElements)) {
         const el = document.getElementById(id);
@@ -196,18 +280,10 @@ function updateTexts() {
     if (usernameInput) usernameInput.placeholder = t.usernamePlaceholder;
     const selfBtn = document.getElementById('selfBtn');
     if (selfBtn) selfBtn.textContent = t.selfBtn;
-    const customLabel = document.querySelectorAll('.form-label')[2];
-    if (customLabel) customLabel.textContent = t.customLabel;
     const customInput = document.getElementById('customStars');
     if (customInput) customInput.placeholder = t.customPlaceholder;
     const customBtn = document.querySelector('.custom-btn');
     if (customBtn) customBtn.textContent = t.customBtn;
-    const totalSpentLabel = document.querySelectorAll('.stat-label')[0];
-    if (totalSpentLabel) totalSpentLabel.textContent = t.jami;
-    const totalPurchasesLabel = document.querySelectorAll('.stat-label')[1];
-    if (totalPurchasesLabel) totalPurchasesLabel.textContent = t.xaridlar;
-    const historyTitle = document.querySelector('.history-title');
-    if (historyTitle) historyTitle.textContent = t.tarix;
     tg.MainButton.setText(t.buyBtn);
 }
 
@@ -215,7 +291,6 @@ function updateBalance() {
     const balanceEl = document.getElementById('balance');
     if (balanceEl) {
         balanceEl.textContent = userBalance.toLocaleString() + " so'm";
-        console.log('💰 Баланс на экране:', userBalance);
     }
 }
 
@@ -225,52 +300,6 @@ function loadUserBalance() {
         type: 'get_user_balance',
         timestamp: new Date().toISOString()
     }));
-}
-
-function refreshBalance() {
-    console.log('🔄 Обновление...');
-    loadUserBalance();
-    const btn = document.querySelector('.refresh-btn');
-    if (btn) {
-        btn.style.transform = 'rotate(360deg)';
-        setTimeout(function() { btn.style.transform = 'rotate(0deg)'; }, 500);
-    }
-}
-
-function selectStars(amount) {
-    selectedStars = amount;
-    document.getElementById('starsAmount').value = amount;
-    updatePriceDisplay();
-    document.querySelectorAll('.quick-btn').forEach(function(btn) {
-        btn.classList.toggle('active', parseInt(btn.textContent) === amount);
-    });
-    tg.MainButton.show();
-}
-
-function setCustomStars() {
-    const custom = parseInt(document.getElementById('customStars').value);
-    if (custom && custom > 0) {
-        selectedStars = custom;
-        document.getElementById('starsAmount').value = custom;
-        const price = custom * 200;
-        document.getElementById('priceDisplay').textContent = price.toLocaleString() + " so'm";
-        document.querySelectorAll('.quick-btn').forEach(function(btn) {
-            btn.classList.remove('active');
-        });
-        tg.MainButton.show();
-    }
-}
-
-function updatePriceDisplay() {
-    const price = starPrices[selectedStars] || (selectedStars * 200);
-    document.getElementById('priceDisplay').textContent = price.toLocaleString() + " so'm";
-}
-
-function setSelf() {
-    const user = tg.initDataUnsafe.user;
-    if (user) {
-        document.getElementById('username').value = user.username || user.first_name;
-    }
 }
 
 function buyStars() {
@@ -329,10 +358,6 @@ function proceedToPaymentProof() {
     const modal = document.querySelector('.modal');
     if (modal) modal.remove();
     showPaymentProofModal(amount);
-}
-
-function openSupport() {
-    tg.openTelegramLink('https://t.me/stars_support_manager');
 }
 
 function showPaymentProofModal(amount) {
@@ -489,62 +514,7 @@ function loadData() {
     if (saved) userData = JSON.parse(saved);
 }
 
-function switchTab(tab) {
-    document.querySelectorAll('.tab-content').forEach(function(t) { t.classList.remove('active'); });
-    document.querySelectorAll('.tab-btn').forEach(function(b) { b.classList.remove('active'); });
-    const tabEl = document.getElementById(tab + 'Tab');
-    if (tabEl) tabEl.classList.add('active');
-    const btnEl = document.querySelector('[data-tab="' + tab + '"]');
-    if (btnEl) btnEl.classList.add('active');
-    if (tab === 'requests') {
-        loadUserRequests();
-    }
-}
-
-function navTo(page) {
-    document.querySelectorAll('.nav-item').forEach(function(item) { item.classList.remove('active'); });
-    const navMap = { 'menu': 0, 'premium': 1, 'rating': 2, 'profile': 3 };
-    const index = navMap[page];
-    if (index !== undefined) {
-        const navItems = document.querySelectorAll('.nav-item');
-        if (navItems[index]) navItems[index].classList.add('active');
-    }
-    if (page === 'menu') {
-        switchTab('stars');
-    } else if (page === 'premium') {
-        switchTab('premium');
-    } else if (page === 'rating') {
-        switchTab('rating');
-    } else if (page === 'profile') {
-        switchTab('profile');
-    }
-}
-
-function addBalance() {
-    showTopupModal();
-}
-
-function closeApp() {
-    tg.close();
-}
-
-function buyPremium() {
-    const premiumPrice = 50000;
-    if (userBalance < premiumPrice) {
-        tg.showAlert("❌ Недостаточно средств!\n\nПополните баланс.");
-        return;
-    }
-    tg.sendData(JSON.stringify({
-        type: 'premium',
-        price: premiumPrice,
-        timestamp: new Date().toISOString()
-    }));
-    setTimeout(function() { loadUserBalance(); }, 1000);
-    tg.showAlert("✅ Telegram Premium активирован!\n\n💰 " + premiumPrice.toLocaleString() + " so'm");
-}
-
 function loadUserRequests() {
-    const requestsList = document.getElementById('requestsList');
     tg.sendData(JSON.stringify({
         type: 'get_user_requests',
         timestamp: new Date().toISOString()
@@ -581,11 +551,6 @@ function displayRequests(requests) {
                 <div class="request-status ${statusClass}">${statusText}</div>
                 <div class="request-proof">📄 Чек: ${req.payment_proof || 'Не загружен'}</div>
                 <div class="request-date">🕐 ${date}</div>
-                ${req.status === 'pending' ? `
-                    <button class="upload-proof-btn" onclick="uploadProof(${req.id})">
-                        📸 Загрузить чек
-                    </button>
-                ` : ''}
             </div>
         `;
     });
@@ -594,32 +559,6 @@ function displayRequests(requests) {
 
 function uploadProof(requestId) {
     tg.showAlert('📸 Загрузка чека\n\nОтправьте фото/скриншот чека боту в личные сообщения.\n\nЧек будет автоматически привязан к заявке #' + requestId);
-}
-
-function buyPremiumPlan(months, price) {
-    if (userBalance < price) {
-        tg.showAlert("❌ Недостаточно средств!\n\nПополните баланс.");
-        return;
-    }
-    
-    const monthText = months === 3 ? '3 месяца' : months === 6 ? '6 месяцев' : '12 месяцев';
-    
-    tg.showConfirm(
-        `💎 Оформить Telegram Premium на ${monthText}?\n\n💰 Стоимость: ${price.toLocaleString()} so'm`,
-        function(confirmed) {
-            if (confirmed) {
-                tg.sendData(JSON.stringify({
-                    type: 'premium',
-                    months: months,
-                    price: price,
-                    timestamp: new Date().toISOString()
-                }));
-                
-                setTimeout(function() { loadUserBalance(); }, 1000);
-                tg.showAlert(`✅ Telegram Premium активирован на ${monthText}!\n\n💰 ${price.toLocaleString()} so'm`);
-            }
-        }
-    );
 }
 
 tg.ready();
