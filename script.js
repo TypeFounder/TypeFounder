@@ -99,9 +99,7 @@ let userBalance = 0;
 let userData = { history: [], totalSpent: 0, totalPurchases: 0 };
 let paymentDetails = 'Karta: 8600 1234 5678 9012\nTelefon: +998 90 123 45 67';
 
-// ============================================
-// 📬 СЛУШАЕМ ОТВЕТЫ ОТ БОТА
-// ============================================
+// Слушаем ответы от бота
 window.addEventListener('message', function(event) {
     console.log('📨 Получено:', event.data);
     
@@ -129,9 +127,6 @@ window.addEventListener('message', function(event) {
     }
 });
 
-// ============================================
-// 🎯 ИНИЦИАЛИЗАЦИЯ
-// ============================================
 document.addEventListener('DOMContentLoaded', function() {
     console.log('🚀 DOM загружен');
     
