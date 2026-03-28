@@ -464,7 +464,7 @@ function loadProfile() {
     userData.history.slice().reverse().slice(0, 10).forEach(function(item) {
         const div = document.createElement('div');
         div.className = 'history-item';
-        div.innerHTML = '<div class="history-header"><div class="history-type">' + (item.type === 'stars' ? '⭐ Stars' : '🎁 ' + item.details) + '</div><div class="history-amount">' + item.price.toLocaleString() + " so'm</div></div><div class="history-details">' + item.stars + ' ⭐</div><div class="history-date">' + new Date(item.timestamp).toLocaleString() + '</div>';
+        div.innerHTML = `<div class="history-header"><div class="history-type">${item.type === 'stars' ? '⭐ Stars' : '🎁 ' + item.details}</div><div class="history-amount">${item.price.toLocaleString()} so'm</div></div><div class="history-details">${item.stars} ⭐</div><div class="history-date">${new Date(item.timestamp).toLocaleString()}</div>`;
         list.appendChild(div);
     });
 }
