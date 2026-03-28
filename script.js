@@ -24,9 +24,20 @@ const translations = {
         insufficientBalance: 'Недостаточно средств',
         topupTitle: 'Пополнение',
         topupAmount: 'Сумма',
+        topupProof: 'Чек',
+        topupSubmit: 'Отправить',
+        topupSuccess: 'Заявка отправлена',
         cancel: 'Отмена',
         sent: 'Отправил',
-        lang: 'RU'
+        lang: 'RU',
+        menu: 'Меню',
+        gift: 'Подарки',
+        rating: 'Рейтинг',
+        profile: 'Профиль',
+        stars: 'Stars',
+        jami: 'Всего',
+        xaridlar: 'Покупок',
+        tarix: 'История'
     },
     uz: {
         starsTitle: 'Telegram Stars',
@@ -48,9 +59,20 @@ const translations = {
         insufficientBalance: "Mablag' yetarli emas",
         topupTitle: "Balansni to'ldirish",
         topupAmount: 'Summa',
+        topupProof: 'Chek',
+        topupSubmit: "Yuborish",
+        topupSuccess: "Zayavka yuborildi",
         cancel: 'Bekor qilish',
         sent: "Yubordim",
-        lang: 'UZ'
+        lang: 'UZ',
+        menu: 'Menyu',
+        gift: 'Gift',
+        rating: 'Reyting',
+        profile: 'Profil',
+        stars: 'Stars',
+        jami: 'Jami',
+        xaridlar: 'Xaridlar',
+        tarix: 'Tarix'
     }
 };
 
@@ -75,9 +97,10 @@ let currentLang = 'uz';
 let selectedStars = 50;
 let userBalance = 0;
 let userData = { history: [], totalSpent: 0, totalPurchases: 0 };
+let paymentDetails = 'Karta: 8600 1234 5678 9012\nTelefon: +998 90 123 45 67';
 
 // ============================================
-// 📬 СЛУШАЕМ ОТВЕТЫ ОТ БОТА (СРАЗУ!)
+// 📬 СЛУШАЕМ ОТВЕТЫ ОТ БОТА
 // ============================================
 window.addEventListener('message', function(event) {
     console.log('📨 Получено:', event.data);
@@ -92,8 +115,16 @@ window.addEventListener('message', function(event) {
         
         if (event.data.startsWith('PAYMENT_DETAILS:')) {
             const details = event.data.replace('PAYMENT_DETAILS:', '');
+            paymentDetails = details;
             const detailsEl = document.getElementById('paymentDetailsDisplay');
-            if (detailsEl) detailsEl.textContent = details;
+            if (detailsEl) {
+                detailsEl.textContent = details;
+            }
+        }
+        
+        if (event.data.startsWith('USER_REQUESTS:')) {
+            const requestsData = JSON.parse(event.data.replace('USER_REQUESTS:', ''));
+            displayRequests(requestsData);
         }
     }
 });
@@ -152,15 +183,19 @@ function initApp() {
 
 function updateTexts() {
     const t = translations[currentLang];
-    const elements = {
+    const textElements = {
         'starsTitle': t.starsTitle,
         'recipientLabel': t.recipientLabel,
         'amountLabel': t.amountLabel,
         'giftTitle': t.giftTitle,
         'ratingTitle': t.ratingTitle,
-        'profileTitle': t.profileTitle
+        'profileTitle': t.profileTitle,
+        'navMenu': t.menu,
+        'navGift': t.gift,
+        'navRating': t.rating,
+        'navProfile': t.profile
     };
-    for (const [id, text] of Object.entries(elements)) {
+    for (const [id, text] of Object.entries(textElements)) {
         const el = document.getElementById(id);
         if (el) el.textContent = text;
     }
@@ -168,10 +203,18 @@ function updateTexts() {
     if (usernameInput) usernameInput.placeholder = t.usernamePlaceholder;
     const selfBtn = document.getElementById('selfBtn');
     if (selfBtn) selfBtn.textContent = t.selfBtn;
+    const customLabel = document.querySelectorAll('.form-label')[2];
+    if (customLabel) customLabel.textContent = t.customLabel;
     const customInput = document.getElementById('customStars');
     if (customInput) customInput.placeholder = t.customPlaceholder;
     const customBtn = document.querySelector('.custom-btn');
     if (customBtn) customBtn.textContent = t.customBtn;
+    const totalSpentLabel = document.querySelectorAll('.stat-label')[0];
+    if (totalSpentLabel) totalSpentLabel.textContent = t.jami;
+    const totalPurchasesLabel = document.querySelectorAll('.stat-label')[1];
+    if (totalPurchasesLabel) totalPurchasesLabel.textContent = t.xaridlar;
+    const historyTitle = document.querySelector('.history-title');
+    if (historyTitle) historyTitle.textContent = t.tarix;
     tg.MainButton.setText(t.buyBtn);
 }
 
@@ -271,7 +314,7 @@ function showTopupModal(amount) {
         '</div>' +
         '<div style="background: rgba(30, 39, 54, 0.8); padding: 20px; border-radius: 12px; margin-bottom: 20px;">' +
         '<p style="margin-bottom: 10px; color: #8b92a8; font-size: 14px;">Реквизиты для оплаты:</p>' +
-        '<div id="paymentDetailsDisplay" style="background: #0f1419; padding: 15px; border-radius: 8px; font-family: monospace; white-space: pre-wrap; font-size: 14px; line-height: 1.6;">Karta: 8600 1234 5678 9012</div>' +
+        '<div id="paymentDetailsDisplay" style="background: #0f1419; padding: 15px; border-radius: 8px; font-family: monospace; white-space: pre-wrap; font-size: 14px; line-height: 1.6; min-height: 80px;">' + paymentDetails + '</div>' +
         '</div>' +
         '<div style="display: flex; gap: 10px;">' +
         '<button class="lang-btn" onclick="this.closest(\'.modal\').remove()" style="background: #2d3a4f; flex: 1;">' + t.cancel + '</button>' +
@@ -374,7 +417,24 @@ function buyGift(gift) {
 function loadRating() {
     const list = document.getElementById('ratingList');
     if (!list) return;
-    list.innerHTML = '<div class="rating-item"><div class="rating-position">#1</div><div class="rating-avatar">A</div><div class="rating-info"><div class="rating-name">Ali</div><div class="rating-stats">15 xarid</div></div><div class="rating-value">250,000 so\'m</div></div>';
+    const rating = [
+        { name: 'Ali', spent: 250000, purchases: 15 },
+        { name: 'Vali', spent: 180000, purchases: 10 },
+        { name: 'Sardor', spent: 120000, purchases: 8 }
+    ];
+    list.innerHTML = '';
+    rating.forEach(function(user, i) {
+        const item = document.createElement('div');
+        item.className = 'rating-item';
+        item.innerHTML = '<div class="rating-position">#' + (i + 1) + '</div>' +
+            '<div class="rating-avatar">' + user.name[0] + '</div>' +
+            '<div class="rating-info">' +
+            '<div class="rating-name">' + user.name + '</div>' +
+            '<div class="rating-stats">' + user.purchases + ' xarid</div>' +
+            '</div>' +
+            '<div class="rating-value">' + user.spent.toLocaleString() + " so'm</div>";
+        list.appendChild(item);
+    });
 }
 
 function loadProfile() {
@@ -458,6 +518,45 @@ function buyPremium() {
         timestamp: new Date().toISOString()
     }));
     tg.showAlert("✅ Telegram Premium активирован!\n\n💰 " + premiumPrice.toLocaleString() + " so'm");
+}
+
+function loadUserRequests() {
+    const requestsList = document.getElementById('requestsList');
+    tg.sendData(JSON.stringify({
+        type: 'get_user_requests',
+        timestamp: new Date().toISOString()
+    }));
+}
+
+function displayRequests(requests) {
+    const requestsList = document.getElementById('requestsList');
+    if (!requests || requests.length === 0) {
+        requestsList.innerHTML = '<div style="text-align: center; padding: 40px; color: #8b92a8;"><div style="font-size: 48px; margin-bottom: 16px;">📭</div><div>Нет заявок</div></div>';
+        return;
+    }
+    requests.reverse();
+    let html = '';
+    requests.forEach(function(req) {
+        const statusClass = req.status;
+        const statusText = {
+            'pending': '⏳ Ожидает',
+            'approved': '✅ Одобрена',
+            'rejected': '❌ Отклонена'
+        }[req.status] || req.status;
+        const date = new Date(req.created_at).toLocaleString('ru-RU');
+        html += '<div class="request-card">' +
+            '<div class="request-header"><span class="request-id">#' + req.id + '</span><span class="request-amount">' + req.amount.toLocaleString() + " so'm</span></div>" +
+            '<div class="request-status ' + statusClass + '">' + statusText + '</div>' +
+            '<div class="request-proof">📄 Чек: ' + (req.payment_proof || 'Не загружен') + '</div>' +
+            '<div class="request-date">🕐 ' + date + '</div>' +
+            (req.status === 'pending' ? '<button class="upload-proof-btn" onclick="uploadProof(' + req.id + ')">📸 Загрузить чек</button>' : '') +
+            '</div>';
+    });
+    requestsList.innerHTML = html;
+}
+
+function uploadProof(requestId) {
+    tg.showAlert('📸 Загрузка чека\n\nОтправьте фото/скриншот чека боту в личные сообщения.\n\nЧек будет автоматически привязан к заявке #' + requestId);
 }
 
 tg.ready();
