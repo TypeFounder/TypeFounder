@@ -120,11 +120,13 @@ document.addEventListener('DOMContentLoaded', function() {
 });
 
 function selectLanguage(lang) {
-    console.log('🌐 Язык:', lang);
+    console.log('🌐 Выбор языка:', lang);
     currentLang = lang;
     localStorage.setItem('language', lang);
     const modal = document.getElementById('languageModal');
-    if (modal) modal.style.display = 'none';
+    if (modal) {
+        modal.style.display = 'none';
+    }
     initApp();
 }
 
@@ -366,6 +368,7 @@ function buyGift(gift) {
         price: gift.price,
         timestamp: new Date().toISOString()
     }));
+    tg.showAlert("✅ Muvaffaqiyatli!\n\n" + gift.name[currentLang] + "\n" + gift.price.toLocaleString() + " so'm");
 }
 
 function loadRating() {
