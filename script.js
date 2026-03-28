@@ -77,28 +77,23 @@ let userBalance = 0;
 let userData = { history: [], totalSpent: 0, totalPurchases: 0 };
 
 // ============================================
-// 📬 СЛУШАЕМ ОТВЕТЫ ОТ БОТА (ДО ЗАГРУЗКИ)
+// 📬 СЛУШАЕМ ОТВЕТЫ ОТ БОТА (СРАЗУ!)
 // ============================================
 window.addEventListener('message', function(event) {
-    console.log('📨 Получено сообщение:', event.data);
+    console.log('📨 Получено:', event.data);
     
     if (event.data && typeof event.data === 'string') {
-        // Обновление баланса
         if (event.data.startsWith('USER_BALANCE:')) {
             const balance = parseInt(event.data.replace('USER_BALANCE:', ''));
             userBalance = balance;
             updateBalance();
-            console.log('✅ Баланс обновлён:', balance);
+            console.log('✅ Баланс:', balance);
         }
         
-        // Реквизиты
         if (event.data.startsWith('PAYMENT_DETAILS:')) {
             const details = event.data.replace('PAYMENT_DETAILS:', '');
             const detailsEl = document.getElementById('paymentDetailsDisplay');
-            if (detailsEl) {
-                detailsEl.textContent = details;
-                console.log('✅ Реквизиты обновлены');
-            }
+            if (detailsEl) detailsEl.textContent = details;
         }
     }
 });
@@ -125,7 +120,7 @@ document.addEventListener('DOMContentLoaded', function() {
 });
 
 function selectLanguage(lang) {
-    console.log('🌐 Выбор языка:', lang);
+    console.log('🌐 Язык:', lang);
     currentLang = lang;
     localStorage.setItem('language', lang);
     const modal = document.getElementById('languageModal');
@@ -178,33 +173,23 @@ function updateTexts() {
     tg.MainButton.setText(t.buyBtn);
 }
 
-// ============================================
-// 💰 ОБНОВЛЕНИЕ БАЛАНСА
-// ============================================
 function updateBalance() {
     const balanceEl = document.getElementById('balance');
     if (balanceEl) {
         balanceEl.textContent = userBalance.toLocaleString() + " so'm";
-        console.log('💰 Баланс на экране:', userBalance);
     }
 }
 
-// ============================================
-// 🔄 ЗАГРУЗКА БАЛАНСА
-// ============================================
 function loadUserBalance() {
-    console.log('📡 Запрос баланса у бота...');
+    console.log('📡 Запрос баланса...');
     tg.sendData(JSON.stringify({
         type: 'get_user_balance',
         timestamp: new Date().toISOString()
     }));
 }
 
-// ============================================
-// 🔄 КНОПКА ОБНОВЛЕНИЯ БАЛАНСА
-// ============================================
 function refreshBalance() {
-    console.log('🔄 Ручное обновление баланса...');
+    console.log('🔄 Обновление...');
     loadUserBalance();
     const btn = document.querySelector('.refresh-btn');
     if (btn) {
