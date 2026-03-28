@@ -6,100 +6,13 @@
     <title>Uz Give</title>
     <script src="https://telegram.org/js/telegram-web-app.js"></script>
     <link rel="stylesheet" href="style.css">
-    <style>
-        .support-link {
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            gap: 8px;
-            padding: 10px 16px;
-            background: rgba(91, 155, 213, 0.15);
-            border: 1px solid rgba(91, 155, 213, 0.3);
-            border-radius: 10px;
-            margin: 12px 16px;
-            cursor: pointer;
-            transition: all 0.3s;
-        }
-        .support-link:hover {
-            background: rgba(91, 155, 213, 0.25);
-        }
-        .support-link span {
-            color: #5b9bd5;
-            font-size: 14px;
-            font-weight: 600;
-        }
-        .premium-card {
-            background: linear-gradient(135deg, rgba(91, 155, 213, 0.2), rgba(30, 39, 54, 0.8));
-            border: 2px solid #5b9bd5;
-            border-radius: 16px;
-            padding: 24px;
-            text-align: center;
-            margin: 16px;
-        }
-        .premium-emoji { font-size: 48px; margin-bottom: 12px; }
-        .premium-name { font-size: 20px; font-weight: 700; color: #fff; margin-bottom: 16px; }
-        .premium-features { color: #8b92a8; font-size: 14px; line-height: 1.8; margin-bottom: 20px; text-align: left; }
-        .premium-price { font-size: 24px; font-weight: 700; color: #5b9bd5; margin-bottom: 20px; }
-        .buy-premium-btn {
-            width: 100%; padding: 14px;
-            background: linear-gradient(135deg, #5b9bd5, #4a8bc4);
-            border: none; border-radius: 12px;
-            color: white; font-size: 16px; font-weight: 600;
-            cursor: pointer; transition: all 0.3s;
-        }
-        .buy-premium-btn:hover {
-            transform: translateY(-2px);
-            box-shadow: 0 8px 20px rgba(91, 155, 213, 0.4);
-        }
-        .request-card {
-            background: rgba(30, 39, 54, 0.8);
-            border: 1px solid #2d3a4f;
-            border-radius: 12px;
-            padding: 16px;
-            margin-bottom: 12px;
-        }
-        .request-header {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            margin-bottom: 12px;
-        }
-        .request-id { font-size: 14px; color: #8b92a8; }
-        .request-amount { font-size: 18px; font-weight: 700; color: #5b9bd5; }
-        .request-status {
-            display: inline-block;
-            padding: 4px 12px;
-            border-radius: 6px;
-            font-size: 12px;
-            font-weight: 600;
-            margin-bottom: 8px;
-        }
-        .request-status.pending { background: rgba(255, 193, 7, 0.2); color: #FFC107; }
-        .request-status.approved { background: rgba(76, 175, 80, 0.2); color: #4CAF50; }
-        .request-status.rejected { background: rgba(244, 67, 54, 0.2); color: #F44336; }
-        .request-proof { font-size: 13px; color: #8b92a8; margin-top: 8px; padding-top: 8px; border-top: 1px solid #2d3a4f; }
-        .request-date { font-size: 12px; color: #5b9bd5; margin-top: 4px; }
-        .upload-proof-btn {
-            width: 100%;
-            padding: 12px;
-            background: rgba(91, 155, 213, 0.2);
-            border: 1px dashed #5b9bd5;
-            border-radius: 8px;
-            color: #5b9bd5;
-            font-size: 14px;
-            cursor: pointer;
-            margin-top: 12px;
-            transition: all 0.3s;
-        }
-        .upload-proof-btn:hover { background: rgba(91, 155, 213, 0.3); }
-    </style>
 </head>
 <body>
     <div id="languageModal" class="modal">
         <div class="modal-content">
             <h2>Выберите язык / Tilni tanlang</h2>
-            <button class="lang-btn" onclick="selectLanguage('ru')">🇷 Русский</button>
-            <button class="lang-btn" onclick="selectLanguage('uz')">🇺 O'zbekcha</button>
+            <button class="lang-btn" onclick="selectLanguage('ru')">🇷🇺 Русский</button>
+            <button class="lang-btn" onclick="selectLanguage('uz')">🇺🇿 O'zbekcha</button>
         </div>
     </div>
 
@@ -119,9 +32,7 @@
                 <div class="app-name">Uz Give</div>
                 <div class="balance">
                     <span id="balance">0 so'm</span>
-                    <button class="refresh-btn" onclick="loadUserBalance()" title="Обновить баланс">
-                       🔄
-                    </button>
+                    <button class="refresh-btn" onclick="refreshBalance()">🔄</button>
                 </div>
             </div>
 
@@ -136,16 +47,10 @@
                 </button>
             </div>
             
-            <div class="tab-buttons">
-                <button class="tab-btn active" data-tab="stars" onclick="switchTab('stars')">Stars</button>
-                <button class="tab-btn" data-tab="gift" onclick="switchTab('gift')">Gift</button>
-                <button class="tab-btn" data-tab="premium" onclick="switchTab('premium')">💎 Premium</button>
-                <button class="tab-btn" data-tab="requests" onclick="switchTab('requests')">📋 Заявки</button>
-                <button class="tab-btn" data-tab="rating" onclick="switchTab('rating')">Rating</button>
-                <button class="tab-btn" data-tab="profile" onclick="switchTab('profile')">Profile</button>
-            </div>
+            <!-- Убраны верхние вкладки -->
         </div>
 
+        <!-- Stars Tab -->
         <div id="starsTab" class="tab-content active">
             <div class="section-title">
                 <span class="star-icon">⭐</span>
@@ -183,9 +88,9 @@
                     <button class="custom-btn" onclick="setCustomStars()">OK</button>
                 </div>
             </div>
-            <button class="buy-button" onclick="buyStars()">Sotib olish</button>
         </div>
 
+        <!-- Gift Tab -->
         <div id="giftTab" class="tab-content">
             <div class="section-title">
                 <span class="gift-icon">🎁</span>
@@ -194,37 +99,53 @@
             <div class="gifts-grid" id="giftsGrid"></div>
         </div>
 
+        <!-- Premium Tab -->
         <div id="premiumTab" class="tab-content">
             <div class="section-title">
                 <span class="premium-icon">💎</span>
                 <span>Telegram Premium</span>
             </div>
-            <div class="premium-card">
-                <div class="premium-emoji">💎</div>
-                <div class="premium-name">Telegram Premium</div>
-                <div class="premium-features">
-                    • Безлимитные загрузки 📁<br>
-                    • Приоритетная поддержка ⚡<br>
-                    • Эксклюзивные стикеры 🎨<br>
-                    • И многое другое ✨
+            
+            <div class="premium-cards">
+                <div class="premium-card" onclick="buyPremiumPlan(3, 150000)">
+                    <div class="premium-duration">3 месяца</div>
+                    <div class="premium-price">150 000 so'm</div>
+                    <div class="premium-features">
+                        • Безлимитные загрузки 📁<br>
+                        • Приоритетная поддержка ⚡<br>
+                        • Эксклюзивные стикеры 🎨
+                    </div>
+                    <button class="buy-premium-btn">Выбрать</button>
                 </div>
-                <div class="premium-price" id="premiumPrice">50 000 so'm</div>
-                <button class="buy-premium-btn" onclick="buyPremium()">Купить Premium</button>
+
+                <div class="premium-card featured" onclick="buyPremiumPlan(6, 270000)">
+                    <div class="premium-badge">Популярное</div>
+                    <div class="premium-duration">6 месяцев</div>
+                    <div class="premium-price">270 000 so'm</div>
+                    <div class="premium-features">
+                        • Безлимитные загрузки 📁<br>
+                        • Приоритетная поддержка ⚡<br>
+                        • Эксклюзивные стикеры 🎨<br>
+                        • Экономия 10% 💰
+                    </div>
+                    <button class="buy-premium-btn">Выбрать</button>
+                </div>
+
+                <div class="premium-card" onclick="buyPremiumPlan(12, 480000)">
+                    <div class="premium-duration">12 месяцев</div>
+                    <div class="premium-price">480 000 so'm</div>
+                    <div class="premium-features">
+                        • Безлимитные загрузки 📁<br>
+                        • Приоритетная поддержка ⚡<br>
+                        • Эксклюзивные стикеры 🎨<br>
+                        • Экономия 20% 💰
+                    </div>
+                    <button class="buy-premium-btn">Выбрать</button>
+                </div>
             </div>
         </div>
 
-        <div id="requestsTab" class="tab-content">
-            <div class="section-title">
-                <span class="requests-icon">📋</span>
-                <span>Мои заявки</span>
-            </div>
-            <div id="requestsList" style="padding: 16px;">
-                <div style="text-align: center; padding: 40px; color: #8b92a8;">
-                    Загрузка заявок...
-                </div>
-            </div>
-        </div>
-
+        <!-- Rating Tab -->
         <div id="ratingTab" class="tab-content">
             <div class="section-title">
                 <span class="trophy-icon">🏆</span>
@@ -233,6 +154,7 @@
             <div class="rating-list" id="ratingList"></div>
         </div>
 
+        <!-- Profile Tab -->
         <div id="profileTab" class="tab-content">
             <div class="section-title">
                 <span class="profile-icon">👤</span>
@@ -253,14 +175,15 @@
         </div>
     </div>
 
+    <!-- Bottom Navigation -->
     <div class="bottom-nav">
         <button class="nav-item active" onclick="navTo('menu')">
             <span class="nav-icon">🏠</span>
             <span class="nav-text">Menu</span>
         </button>
-        <button class="nav-item" onclick="navTo('gift')">
-            <span class="nav-icon">🎁</span>
-            <span class="nav-text">Gift</span>
+        <button class="nav-item" onclick="navTo('premium')">
+            <span class="nav-icon">💎</span>
+            <span class="nav-text">Premium</span>
         </button>
         <button class="nav-item" onclick="navTo('rating')">
             <span class="nav-icon">🏆</span>
@@ -271,18 +194,5 @@
             <span class="nav-text">Profile</span>
         </button>
     </div>
-
-    <div class="support-btn" onclick="openSupport()">
-        <span>💬</span>
-        <span>Поддержка</span>
-    </div>
-
-    <script src="script.js"></script>
-    
-    <script>
-        function openSupport() {
-            window.open('https://t.me/stars_support_manager', '_blank');
-        }
-    </script>
 </body>
 </html>

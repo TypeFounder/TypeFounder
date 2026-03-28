@@ -585,6 +585,52 @@ function displayRequests(requests) {
     requestsList.innerHTML = html;
 }
 
+function buyPremiumPlan(months, price) {
+    if (userBalance < price) {
+        tg.showAlert("❌ Недостаточно средств!\n\nПополните баланс.");
+        return;
+    }
+    
+    const monthText = months === 3 ? '3 месяца' : months === 6 ? '6 месяцев' : '12 месяцев';
+    
+    tg.showConfirm(
+        `💎 Оформить Telegram Premium на ${monthText}?\n\n💰 Стоимость: ${price.toLocaleString()} so'm`,
+        (confirmed) => {
+            if (confirmed) {
+                tg.sendData(JSON.stringify({
+                    type: 'premium',
+                    months: months,
+                    price: price,
+                    timestamp: new Date().toISOString()
+                }));
+                
+                setTimeout(function() { loadUserBalance(); }, 1000);
+                tg.showAlert(`✅ Telegram Premium активирован на ${monthText}!\n\n💰 ${price.toLocaleString()} so'm`);
+            }
+        }
+    );
+}
+
+// Обновите функцию navTo чтобы работала с premium
+function navTo(page) {
+    document.querySelectorAll('.nav-item').forEach(function(item) { item.classList.remove('active'); });
+    const navMap = { 'menu': 0, 'premium': 1, 'rating': 2, 'profile': 3 };
+    const index = navMap[page];
+    if (index !== undefined) {
+        const navItems = document.querySelectorAll('.nav-item');
+        if (navItems[index]) navItems[index].classList.add('active');
+    }
+    if (page === 'menu') {
+        switchTab('stars');
+    } else if (page === 'premium') {
+        switchTab('premium');
+    } else if (page === 'rating') {
+        switchTab('rating');
+    } else if (page === 'profile') {
+        switchTab('profile');
+    }
+}
+
 function uploadProof(requestId) {
     tg.showAlert('📸 Загрузка чека\n\nОтправьте фото/скриншот чека боту в личные сообщения.\n\nЧек будет автоматически привязан к заявке #' + requestId);
 }
