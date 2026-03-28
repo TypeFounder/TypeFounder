@@ -251,26 +251,16 @@ async def approve_handler(message: Message):
         )
         
         try:
-            await bot.send_photo(
-                request['user_id'],
-                photo="https://images.unsplash.com/photo-1555445054-8488d04c0d6d?w=800",
-                caption=(
-                    f"✅ <b>Пополнение успешно!</b>\n\n"
-                    f"💰 <b>Сумма:</b> {amount:,} so'm\n"
-                    f"📊 <b>Ваш баланс:</b> {new_balance:,} so'm\n\n"
-                    f"Спасибо за использование Uz Give! 🎁"
-                ),
-                parse_mode="HTML"
-            )
-        except Exception as e:
-            logger.error(f"Failed to send success photo: {e}")
             await bot.send_message(
                 request['user_id'],
                 f"✅ <b>Пополнение успешно!</b>\n\n"
                 f"💰 <b>Сумма:</b> {amount:,} so'm\n"
-                f"📊 <b>Ваш баланс:</b> {new_balance:,} so'm",
+                f"📊 <b>Ваш баланс:</b> {new_balance:,} so'm\n\n"
+                f"Спасибо за использование Uz Give! 🎁",
                 parse_mode="HTML"
             )
+        except Exception as e:
+            logger.error(f"Failed to send success message: {e}")
         
     except Exception as e:
         logger.error(f"Error in approve_handler: {e}", exc_info=True)
@@ -658,17 +648,27 @@ async def process_webapp_data(message: Message):
         data = json.loads(message.web_app_data.data)
         logger.info(f"WebApp data received: {data}")
         
+        # ============================================
+        # 💰 ЗАПРОС БАЛАНСА
+        # ============================================
         if data.get('type') == 'get_user_balance':
             user = get_user(message.from_user.id)
-            await message.answer(f"USER_BALANCE:{user['balance']}")
-            logger.info(f"Sent balance {user['balance']} to user {message.from_user.id}")
+            balance = user.get('balance', 0)
+            logger.info(f"Sending balance {balance} to user {message.from_user.id}")
+            await message.answer(f"USER_BALANCE:{balance}")
             return
         
+        # ============================================
+        # 💳 РЕКВИЗИТЫ
+        # ============================================
         if data.get('type') == 'get_payment_details':
             settings = get_admin_settings()
-            await message.answer(settings.get('payment_details', 'Not set'))
+            await message.answer(f"PAYMENT_DETAILS:{settings.get('payment_details', 'Not set')}")
             return
         
+        # ============================================
+        # 📋 ЗАЯВКИ ПОЛЬЗОВАТЕЛЯ
+        # ============================================
         if data.get('type') == 'get_user_requests':
             user_requests = []
             data_file = 'data.json'
@@ -688,21 +688,32 @@ async def process_webapp_data(message: Message):
             await message.answer(f"USER_REQUESTS:{json.dumps(user_requests)}")
             return
         
+        # ============================================
+        # ⭐ ПОКУПКА STARS
+        # ============================================
         if data.get('type') == 'stars':
             if deduct_balance(message.from_user.id, data['price']):
                 add_purchase(message.from_user.id, 'stars', data['stars'], data['price'])
                 await message.answer(f"✅ Куплено {data['stars']} звёзд!\n💰 {data['price']:,} so'm")
             else:
                 await message.answer("❌ Недостаточно средств\nПополните баланс")
+            return
         
-        elif data.get('type') == 'gift':
+        # ============================================
+        # 🎁 ПОКУПКА ПОДАРКА
+        # ============================================
+        if data.get('type') == 'gift':
             if deduct_balance(message.from_user.id, data['price']):
                 add_purchase(message.from_user.id, 'gift', data['stars'], data['price'], data['gift'])
                 await message.answer(f"✅ Подарок {data['gift']}!\n💰 {data['price']:,} so'm")
             else:
                 await message.answer("❌ Недостаточно средств")
+            return
         
-        elif data.get('type') == 'premium':
+        # ============================================
+        # 💎 ПОКУПКА PREMIUM
+        # ============================================
+        if data.get('type') == 'premium':
             settings = get_admin_settings()
             premium_price = settings.get('premium_price', 50000)
             
@@ -711,8 +722,77 @@ async def process_webapp_data(message: Message):
                 await message.answer(f"✅ Telegram Premium активирован!\n💰 {premium_price:,} so'm")
             else:
                 await message.answer("❌ Недостаточно средств\nПополните баланс")
+            return
+        
+        # ============================================
+        # 📥 ЗАЯВКА НА ПОПОЛНЕНИЕ
+        # ============================================
+        if data.get('type') == 'topup_request':
+            username = data.get('username', 'Не указан')
+            amount = data.get('amount', 0)
+            proof = data.get('proof', 'Не предоставлен')
+            
+            logger.info(f"Creating topup request: amount={amount}, username={username}, proof={proof}")
+            
+            request = create_topup_request(
+                message.from_user.id,
+                amount,
+                proof,
+                username
+            )
+            
+            logger.info(f"✅ Request created with ID: {request['id']}")
+            
+            settings = get_admin_settings()
+            
+            admin_list = [ADMIN_ID]
+            if os.path.exists(DATA_FILE):
+                with open(DATA_FILE, 'r', encoding='utf-8') as f:
+                    data_json = json.load(f)
+                    admin_list.extend(data_json.get('admins', []))
+            
+            logger.info(f"📢 Sending to admins: {admin_list}")
+            
+            for admin_id in set(admin_list):
+                try:
+                    await bot.send_message(
+                        admin_id,
+                        f"💰 <b>🔔 НОВАЯ ЗАЯВКА # {request['id']}</b>\n\n"
+                        f"👤 <b>Пользователь:</b> @{username}\n"
+                        f"🔢 <b>ID:</b> <code>{message.from_user.id}</code>\n"
+                        f"💵 <b>Сумма:</b> {amount:,} so'm\n"
+                        f"📄 <b>Чек/транзакция:</b> {proof}\n"
+                        f"⏰ <b>Время:</b> {datetime.now().strftime('%d.%m.%Y %H:%M')}\n\n"
+                        f"💳 <b>Реквизиты для проверки:</b>\n"
+                        f"<code>{settings.get('payment_details', 'Не настроены')}</code>\n\n"
+                        f"<i>📸 Пользователь может загрузить фото чека</i>\n"
+                        f"<i>Просто попросите его отправить фото боту</i>",
+                        parse_mode="HTML"
+                    )
+                    logger.info(f"✅ Notification sent to admin {admin_id}")
+                except Exception as e:
+                    logger.error(f"❌ Failed to send to admin {admin_id}: {e}")
+            
+            await message.answer(
+                f"✅ <b>Заявка # {request['id']} создана!</b>\n\n"
+                f"💵 <b>Сумма:</b> {amount:,} so'm\n"
+                f"👤 <b>Username:</b> @{username}\n\n"
+                f"<b>📸 Следующий шаг:</b>\n"
+                f"Отправьте <b>фото/скриншот чека</b> этому боту в личные сообщения.\n\n"
+                f"Админ получит чек и подтвердит заявку.",
+                parse_mode="HTML"
+            )
+            logger.info(f"✅ Confirmation sent to user")
+            return
+        
+        logger.warning(f"⚠️ Unknown request type: {data.get('type')}")
+        
+    except json.JSONDecodeError as e:
+        logger.error(f"❌ JSON decode error: {e}")
+        await message.answer("❌ Ошибка обработки данных. Попробуйте ещё раз.")
     except Exception as e:
-        logger.error(f"Error in process_webapp_data: {e}")
+        logger.error(f"❌ Error in process_webapp_data: {e}", exc_info=True)
+        await message.answer(f"❌ Произошла ошибка: {e}")
 
 async def main():
     logger.info("Starting bot...")
