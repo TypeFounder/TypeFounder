@@ -648,27 +648,20 @@ async def process_webapp_data(message: Message):
         data = json.loads(message.web_app_data.data)
         logger.info(f"WebApp data received: {data}")
         
-        # ============================================
-        # 💰 ЗАПРОС БАЛАНСА
-        # ============================================
+        # Запрос баланса
         if data.get('type') == 'get_user_balance':
             user = get_user(message.from_user.id)
-            balance = user.get('balance', 0)
-            logger.info(f"Sending balance {balance} to user {message.from_user.id}")
-            await message.answer(f"USER_BALANCE:{balance}")
+            await message.answer(f"USER_BALANCE:{user['balance']}")
+            logger.info(f"Sent balance {user['balance']} to user {message.from_user.id}")
             return
         
-        # ============================================
-        # 💳 РЕКВИЗИТЫ
-        # ============================================
+        # Реквизиты
         if data.get('type') == 'get_payment_details':
             settings = get_admin_settings()
             await message.answer(f"PAYMENT_DETAILS:{settings.get('payment_details', 'Not set')}")
             return
         
-        # ============================================
-        # 📋 ЗАЯВКИ ПОЛЬЗОВАТЕЛЯ
-        # ============================================
+        # Заявки пользователя
         if data.get('type') == 'get_user_requests':
             user_requests = []
             data_file = 'data.json'
@@ -688,9 +681,7 @@ async def process_webapp_data(message: Message):
             await message.answer(f"USER_REQUESTS:{json.dumps(user_requests)}")
             return
         
-        # ============================================
-        # ⭐ ПОКУПКА STARS
-        # ============================================
+        # Покупка звёзд
         if data.get('type') == 'stars':
             if deduct_balance(message.from_user.id, data['price']):
                 add_purchase(message.from_user.id, 'stars', data['stars'], data['price'])
@@ -699,9 +690,7 @@ async def process_webapp_data(message: Message):
                 await message.answer("❌ Недостаточно средств\nПополните баланс")
             return
         
-        # ============================================
-        # 🎁 ПОКУПКА ПОДАРКА
-        # ============================================
+        # Покупка подарка
         if data.get('type') == 'gift':
             if deduct_balance(message.from_user.id, data['price']):
                 add_purchase(message.from_user.id, 'gift', data['stars'], data['price'], data['gift'])
@@ -710,9 +699,7 @@ async def process_webapp_data(message: Message):
                 await message.answer("❌ Недостаточно средств")
             return
         
-        # ============================================
-        # 💎 ПОКУПКА PREMIUM
-        # ============================================
+        # Покупка Premium
         if data.get('type') == 'premium':
             settings = get_admin_settings()
             premium_price = settings.get('premium_price', 50000)
@@ -724,9 +711,7 @@ async def process_webapp_data(message: Message):
                 await message.answer("❌ Недостаточно средств\nПополните баланс")
             return
         
-        # ============================================
-        # 📥 ЗАЯВКА НА ПОПОЛНЕНИЕ
-        # ============================================
+        # Заявка на пополнение
         if data.get('type') == 'topup_request':
             username = data.get('username', 'Не указан')
             amount = data.get('amount', 0)

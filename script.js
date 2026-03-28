@@ -99,9 +99,7 @@ let userBalance = 0;
 let userData = { history: [], totalSpent: 0, totalPurchases: 0 };
 let paymentDetails = 'Karta: 8600 1234 5678 9012\nTelefon: +998 90 123 45 67';
 
-// ============================================
-// 📬 СЛУШАЕМ ОТВЕТЫ ОТ БОТА
-// ============================================
+// Слушаем ответы от бота
 window.addEventListener('message', function(event) {
     console.log('📨 Получено:', event.data);
     
@@ -143,11 +141,6 @@ document.addEventListener('DOMContentLoaded', function() {
     
     loadData();
     loadUserBalance();
-    
-    // Автообновление баланса каждые 5 секунд
-    setInterval(function() {
-        loadUserBalance();
-    }, 5000);
 });
 
 function selectLanguage(lang) {
@@ -220,7 +213,6 @@ function updateBalance() {
     const balanceEl = document.getElementById('balance');
     if (balanceEl) {
         balanceEl.textContent = userBalance.toLocaleString() + " so'm";
-        console.log('💰 Баланс на экране:', userBalance);
     }
 }
 
@@ -233,7 +225,7 @@ function loadUserBalance() {
 }
 
 function refreshBalance() {
-    console.log('🔄 Ручное обновление...');
+    console.log('🔄 Обновление...');
     loadUserBalance();
     const btn = document.querySelector('.refresh-btn');
     if (btn) {
@@ -306,6 +298,7 @@ function showTopupModal(amount) {
     const modal = document.createElement('div');
     modal.className = 'modal';
     modal.style.display = 'flex';
+    
     modal.innerHTML = `
         <div class="modal-content" style="max-width: 90%; width: 450px;">
             <h2 style="margin-bottom: 25px;">${t.topupTitle}</h2>
@@ -323,6 +316,7 @@ function showTopupModal(amount) {
             </div>
         </div>
     `;
+    
     document.body.appendChild(modal);
     tg.sendData(JSON.stringify({ type: 'get_payment_details', timestamp: new Date().toISOString() }));
 }
@@ -344,6 +338,7 @@ function showPaymentProofModal(amount) {
     const modal = document.createElement('div');
     modal.className = 'modal';
     modal.style.display = 'flex';
+    
     modal.innerHTML = `
         <div class="modal-content" style="max-width: 90%; width: 450px;">
             <h2 style="margin-bottom: 25px;">Подтверждение оплаты</h2>
@@ -364,6 +359,7 @@ function showPaymentProofModal(amount) {
             </div>
         </div>
     `;
+    
     document.body.appendChild(modal);
 }
 
@@ -383,7 +379,7 @@ function submitTopupRequest(amount) {
     }));
     const modal = document.querySelector('.modal');
     if (modal) modal.remove();
-    tg.showAlert('✅ Заявка отправлена!\n\nОжидайте подтверждения админа.\n\n💡 После одобрения баланс обновится автоматически!');
+    tg.showAlert('✅ Заявка отправлена!\n\nОжидайте подтверждения админа.');
 }
 
 function loadGifts() {
