@@ -331,11 +331,13 @@ function updateBalance() {
 }
 
 function loadUserBalance() {
-    console.log('📡 Запрос баланса...');
-    tg.sendData(JSON.stringify({
-        type: 'get_user_balance',
-        timestamp: new Date().toISOString()
-    }));
+    const urlParams = new URLSearchParams(window.location.search);
+    const balanceFromUrl = urlParams.get('balance');
+    
+    if (balanceFromUrl) {
+        userBalance = parseInt(balanceFromUrl);
+        updateBalance();
+    }
 }
 
 function buyStars() {

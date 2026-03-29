@@ -46,12 +46,12 @@ async def is_admin(user_id):
 @dp.message(CommandStart())
 async def cmd_start(message: Message):
     user = get_user(message.from_user.id)
-    update_user(message.from_user.id, {'username': message.from_user.username or ''})
-    
-    image_url = "https://images.unsplash.com/photo-1611162617474-5b21e879e113?w=800"
+    # Добавляем баланс в параметры ссылки
+    url_with_params = f"{WEBAPP_URL}?balance={user['balance']}"
     
     builder = InlineKeyboardBuilder()
-    builder.button(text="⭐ Открыть Uz Give", web_app=WebAppInfo(url=WEBAPP_URL))
+    builder.button(text="⭐ Открыть Uz Give", web_app=WebAppInfo(url=url_with_params))
+    # ... остальной код ...
     builder.button(text="💰 Пополнить баланс", callback_data="topup_balance")
     builder.button(text="💬 Поддержка", callback_data="support")
     
