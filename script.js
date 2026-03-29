@@ -2,26 +2,13 @@
 console.log("Скрипт загружен успешно!");
 
 const tg = window.Telegram.WebApp;
-
-// Выносим функцию ПРЯМО В ГЛОБАЛЬНУЮ ОБЛАСТЬ
-window.selectLanguage = function(lang) {
-    console.log('Нажат выбор языка:', lang);
-    currentLang = lang;
-    localStorage.setItem('language', lang);
-    const modal = document.getElementById('languageModal');
-    if (modal) modal.style.display = 'none';
-    
-    // Вызываем инициализацию, если она определена ниже
-    if (typeof initApp === 'function') {
-        initApp();
-    }
-};
-
-// Остальной твой код (translations, starPrices и т.д.) ...
 tg.expand();
 tg.setHeaderColor('#1a1f2e');
 tg.setBackgroundColor('#0f1419');
 
+// ============================================
+// 📚 ДАННЫЕ И ПЕРЕМЕННЫЕ
+// ============================================
 const translations = {
     ru: {
         starsTitle: 'Telegram Stars',
@@ -100,20 +87,31 @@ let paymentDetails = 'Karta: 8600 1234 5678 9012\nTelefon: +998 90 123 45 67';
 // 🌐 ГЛОБАЛЬНЫЕ ФУНКЦИИ (ОБЯЗАТЕЛЬНО!)
 // ============================================
 
+// 💰 Обновление отображения цены
+window.updatePriceDisplay = function() {
+    var price = starPrices[selectedStars] || (selectedStars * 200);
+    var priceDisplay = document.getElementById('priceDisplay');
+    if (priceDisplay) {
+        priceDisplay.textContent = price.toLocaleString() + " so'm";
+    }
+};
+
+// 🌐 Выбор языка
 window.selectLanguage = function(lang) {
     console.log('🌐 Выбор языка:', lang);
     currentLang = lang;
     localStorage.setItem('language', lang);
-    const modal = document.getElementById('languageModal');
+    var modal = document.getElementById('languageModal');
     if (modal) modal.style.display = 'none';
-
-    // Важно: вызываем инициализацию только ПОСЛЕ того, как DOM готов
+    
     if (document.readyState === 'loading') {
         document.addEventListener('DOMContentLoaded', initApp);
-        } else {
-    initApp();
+    } else {
+        initApp();
+    }
 };
 
+// 🔄 Переключение языка
 window.toggleLanguage = function() {
     currentLang = currentLang === 'uz' ? 'ru' : 'uz';
     localStorage.setItem('language', currentLang);
@@ -122,6 +120,7 @@ window.toggleLanguage = function() {
     initApp();
 };
 
+// 🔄 Обновление баланса
 window.refreshBalance = function() {
     console.log('🔄 Обновление...');
     loadUserBalance();
@@ -132,14 +131,17 @@ window.refreshBalance = function() {
     }
 };
 
+// ❌ Закрыть приложение
 window.closeApp = function() {
     tg.close();
 };
 
+// 💬 Открыть поддержку
 window.openSupport = function() {
     tg.openTelegramLink('https://t.me/stars_support_manager');
 };
 
+// 👤 Установить себя
 window.setSelf = function() {
     var user = tg.initDataUnsafe.user;
     if (user) {
@@ -147,6 +149,7 @@ window.setSelf = function() {
     }
 };
 
+// ⭐ Выбор количества звёзд
 window.selectStars = function(amount) {
     selectedStars = amount;
     document.getElementById('starsAmount').value = amount;
@@ -157,6 +160,7 @@ window.selectStars = function(amount) {
     tg.MainButton.show();
 };
 
+// ✏️ Своя сумма
 window.setCustomStars = function() {
     var custom = parseInt(document.getElementById('customStars').value);
     if (custom && custom > 0) {
@@ -171,6 +175,7 @@ window.setCustomStars = function() {
     }
 };
 
+// 🧭 Навигация
 window.navTo = function(page) {
     document.querySelectorAll('.nav-item').forEach(function(item) { item.classList.remove('active'); });
     var navMap = { 'menu': 0, 'premium': 1, 'rating': 2, 'profile': 3 };
@@ -190,6 +195,7 @@ window.navTo = function(page) {
     }
 };
 
+// 📑 Переключение табов
 window.switchTab = function(tab) {
     document.querySelectorAll('.tab-content').forEach(function(t) { t.classList.remove('active'); });
     var tabEl = document.getElementById(tab + 'Tab');
@@ -199,14 +205,14 @@ window.switchTab = function(tab) {
     }
 };
 
+// 💎 Покупка Premium
 window.buyPremiumPlan = function(months, price) {
     if (userBalance < price) {
         tg.showAlert("❌ Недостаточно средств!\n\nПополните баланс.");
         return;
     }
-    
     var monthText = months === 3 ? '3 месяца' : months === 6 ? '6 месяцев' : '12 месяцев';
-    
+
     tg.showConfirm(
         '💎 Оформить Telegram Premium на ' + monthText + '?\n\n💰 Стоимость: ' + price.toLocaleString() + " so'm",
         function(confirmed) {
@@ -230,7 +236,6 @@ window.buyPremiumPlan = function(months, price) {
 // ============================================
 window.addEventListener('message', function(event) {
     console.log('📨 Получено:', event.data);
-    
     if (event.data && typeof event.data === 'string') {
         if (event.data.startsWith('USER_BALANCE:')) {
             var balance = parseInt(event.data.replace('USER_BALANCE:', ''));
@@ -258,7 +263,6 @@ window.addEventListener('message', function(event) {
 // ============================================
 document.addEventListener('DOMContentLoaded', function() {
     console.log('🚀 DOM загружен');
-    
     var savedLang = localStorage.getItem('language');
     if (savedLang) {
         currentLang = savedLang;
@@ -269,7 +273,7 @@ document.addEventListener('DOMContentLoaded', function() {
         var modal = document.getElementById('languageModal');
         if (modal) modal.style.display = 'flex';
     }
-    
+
     loadData();
     loadUserBalance();
 });
@@ -356,15 +360,14 @@ function showTopupModal(amount) {
     var modal = document.createElement('div');
     modal.className = 'modal';
     modal.style.display = 'flex';
-    
     modal.innerHTML = '<div class="modal-content" style="max-width: 90%; width: 450px;">' +
         '<h2 style="margin-bottom: 25px;">' + t.topupTitle + '</h2>' +
         '<div style="margin-bottom: 20px;">' +
-        '<label style="display: block; margin-bottom: 8px; color: #8b92a8; font-size: 14px;">' + t.topupAmount + ':</label>' +
+        '<label style="display: block; margin-bottom: 8px; color: #8b92a8; font-size: 14px;">' + t.topupAmount + ': </label>' +
         '<input type="number" id="topupAmountInput" value="' + (amount || 10000) + '" style="width: 100%; padding: 12px; background: rgba(30, 39, 54, 0.8); border: 2px solid #2d3a4f; border-radius: 8px; color: #fff; font-size: 18px; font-weight: 600;">' +
         '</div>' +
         '<div style="background: rgba(30, 39, 54, 0.8); padding: 20px; border-radius: 12px; margin-bottom: 20px;">' +
-        '<p style="margin-bottom: 10px; color: #8b92a8; font-size: 14px;">Реквизиты для оплаты:</p>' +
+        '<p style="margin-bottom: 10px; color: #8b92a8; font-size: 14px;">Реквизиты для оплаты: </p>' +
         '<div id="paymentDetailsDisplay" style="background: #0f1419; padding: 15px; border-radius: 8px; font-family: monospace; white-space: pre-wrap; font-size: 14px; line-height: 1.6; min-height: 80px;">' + paymentDetails + '</div>' +
         '</div>' +
         '<div style="display: flex; gap: 10px;">' +
@@ -372,7 +375,7 @@ function showTopupModal(amount) {
         '<button class="lang-btn" onclick="proceedToPaymentProof()" style="flex: 1;">Продолжить</button>' +
         '</div>' +
         '</div>';
-    
+
     document.body.appendChild(modal);
     tg.sendData(JSON.stringify({ type: 'get_payment_details', timestamp: new Date().toISOString() }));
 }
@@ -390,18 +393,17 @@ function showPaymentProofModal(amount) {
     var modal = document.createElement('div');
     modal.className = 'modal';
     modal.style.display = 'flex';
-    
     modal.innerHTML = '<div class="modal-content" style="max-width: 90%; width: 450px;">' +
         '<h2 style="margin-bottom: 25px;">Подтверждение оплаты</h2>' +
         '<div style="background: rgba(91, 155, 213, 0.2); padding: 15px; border-radius: 12px; margin-bottom: 20px; border: 1px solid #5b9bd5;">' +
         '<p style="color: #5b9bd5; font-size: 18px; font-weight: 700; text-align: center;">Сумма: ' + amount.toLocaleString() + " so'm</p>" +
         '</div>' +
         '<div style="margin-bottom: 15px;">' +
-        '<label style="display: block; margin-bottom: 8px; color: #8b92a8; font-size: 14px;">Ваш username:</label>' +
+        '<label style="display: block; margin-bottom: 8px; color: #8b92a8; font-size: 14px;">Ваш username: </label>' +
         '<input type="text" id="topupUsername" value="' + (user.username || '') + '" style="width: 100%; padding: 12px; background: rgba(30, 39, 54, 0.8); border: 2px solid #2d3a4f; border-radius: 8px; color: #fff; font-size: 16px;">' +
         '</div>' +
         '<div style="margin-bottom: 20px;">' +
-        '<label style="display: block; margin-bottom: 8px; color: #8b92a8; font-size: 14px;">Чек/скриншот оплаты:</label>' +
+        '<label style="display: block; margin-bottom: 8px; color: #8b92a8; font-size: 14px;">Чек/скриншот оплаты: </label>' +
         '<input type="text" id="topupProof" style="width: 100%; padding: 12px; background: rgba(30, 39, 54, 0.8); border: 2px solid #2d3a4f; border-radius: 8px; color: #fff; font-size: 16px;" placeholder="Например: TX123456">' +
         '</div>' +
         '<div style="display: flex; gap: 10px;">' +
@@ -409,7 +411,7 @@ function showPaymentProofModal(amount) {
         '<button class="lang-btn" onclick="submitTopupRequest(' + amount + ')" style="flex: 1; background: #5b9bd5;">' + t.sent + '</button>' +
         '</div>' +
         '</div>';
-    
+
     document.body.appendChild(modal);
 }
 
@@ -496,21 +498,20 @@ function loadProfile() {
     var list = document.getElementById('historyList');
     if (!list) return;
     if (userData.history.length === 0) {
-        list.innerHTML = '<div style="text-align:center;padding:40px;color:#8b92a8">' + translations[currentLang].noHistory + '</div>';
+        list.innerHTML = '<div style="text-align: center; color: #8b92a8; padding: 40px;">' + translations[currentLang].noHistory + '</div>';
         return;
     }
     list.innerHTML = '';
     userData.history.slice().reverse().slice(0, 10).forEach(function(item) {
         var div = document.createElement('div');
         div.className = 'history-item';
-        div.innerHTML = `
-    <div class="history-header">
-        <div class="history-type">${item.type === 'stars' ? '⭐ Stars' : '🎁 ' + item.details}</div>
-        <div class="history-amount">${item.price.toLocaleString()} so'm</div>
-    </div>
-    <div class="history-details">${item.stars} ⭐</div>
-    <div class="history-date">${new Date(item.timestamp).toLocaleString()}</div>
-`;
+        div.innerHTML = 
+            '<div class="history-header">' +
+                '<div class="history-type">' + (item.type === 'stars' ? '⭐ Stars' : '🎁 ' + item.details) + '</div>' +
+                '<div class="history-amount">' + item.price.toLocaleString() + " so'm</div>" +
+            '</div>' +
+            '<div class="history-details">' + item.stars + ' ⭐</div>' +
+            '<div class="history-date">' + new Date(item.timestamp).toLocaleString() + '</div>';
         list.appendChild(div);
     });
 }
@@ -542,7 +543,7 @@ function loadUserRequests() {
 function displayRequests(requests) {
     var requestsList = document.getElementById('requestsList');
     if (!requests || requests.length === 0) {
-        requestsList.innerHTML = '<div style="text-align: center; padding: 40px; color: #8b92a8;"><div style="font-size: 48px; margin-bottom: 16px;">📭</div><div>Нет заявок</div></div>';
+        requestsList.innerHTML = '<div style="text-align: center; padding: 40px; color: #8b92a8;">📭<br>Нет заявок</div>';
         return;
     }
     requests.reverse();
@@ -555,22 +556,17 @@ function displayRequests(requests) {
             'rejected': '❌ Отклонена'
         }[req.status] || req.status;
         var date = new Date(req.created_at).toLocaleString('ru-RU');
-
-        // ЗАМЕНИ СВОЙ html += НА ЭТОТ БЛОК:
-        html += `
-            <div class="request-card">
-                <div class="request-header">
-                    <span class="request-id">#${req.id}</span>
-                    <span class="request-amount">${req.amount.toLocaleString()} so'm</span>
-                </div>
-                <div class="request-status ${statusClass}">${statusText}</div>
-                <div class="request-proof">📄 Чек: ${req.payment_proof || 'Не загружен'}</div>
-                <div class="request-date">🕐 ${date}</div>
-            </div>
-        `;
+        html += '<div class="request-card">' +
+            '<div class="request-header">' +
+                '<span class="request-id">#' + req.id + '</span>' +
+                '<span class="request-amount">' + req.amount.toLocaleString() + " so'm</span>" +
+            '</div>' +
+            '<div class="request-status ' + statusClass + '">' + statusText + '</div>' +
+            '<div class="request-proof">📄 Чек: ' + req.payment_proof + '</div>' +
+            '<div class="request-date">🕐 ' + date + '</div>' +
+        '</div>';
     });
     requestsList.innerHTML = html;
 }
 
 tg.ready();
-}
