@@ -84,19 +84,9 @@ let userData = { history: [], totalSpent: 0, totalPurchases: 0 };
 let paymentDetails = 'Karta: 8600 1234 5678 9012\nTelefon: +998 90 123 45 67';
 
 // ============================================
-// 🌐 ГЛОБАЛЬНЫЕ ФУНКЦИИ (ОБЯЗАТЕЛЬНО!)
+// 🌐 ГЛОБАЛЬНЫЕ ФУНКЦИИ
 // ============================================
 
-// 💰 Обновление отображения цены
-window.updatePriceDisplay = function() {
-    var price = starPrices[selectedStars] || (selectedStars * 200);
-    var priceDisplay = document.getElementById('priceDisplay');
-    if (priceDisplay) {
-        priceDisplay.textContent = price.toLocaleString() + " so'm";
-    }
-};
-
-// 🌐 Выбор языка
 window.selectLanguage = function(lang) {
     console.log('🌐 Выбор языка:', lang);
     currentLang = lang;
@@ -111,7 +101,6 @@ window.selectLanguage = function(lang) {
     }
 };
 
-// 🔄 Переключение языка
 window.toggleLanguage = function() {
     currentLang = currentLang === 'uz' ? 'ru' : 'uz';
     localStorage.setItem('language', currentLang);
@@ -120,7 +109,6 @@ window.toggleLanguage = function() {
     initApp();
 };
 
-// 🔄 Обновление баланса
 window.refreshBalance = function() {
     console.log('🔄 Обновление...');
     loadUserBalance();
@@ -131,17 +119,14 @@ window.refreshBalance = function() {
     }
 };
 
-// ❌ Закрыть приложение
 window.closeApp = function() {
     tg.close();
 };
 
-// 💬 Открыть поддержку
 window.openSupport = function() {
     tg.openTelegramLink('https://t.me/stars_support_manager');
 };
 
-// 👤 Установить себя
 window.setSelf = function() {
     var user = tg.initDataUnsafe.user;
     if (user) {
@@ -149,7 +134,6 @@ window.setSelf = function() {
     }
 };
 
-// ⭐ Выбор количества звёзд
 window.selectStars = function(amount) {
     selectedStars = amount;
     document.getElementById('starsAmount').value = amount;
@@ -160,7 +144,6 @@ window.selectStars = function(amount) {
     tg.MainButton.show();
 };
 
-// ✏️ Своя сумма
 window.setCustomStars = function() {
     var custom = parseInt(document.getElementById('customStars').value);
     if (custom && custom > 0) {
@@ -175,7 +158,6 @@ window.setCustomStars = function() {
     }
 };
 
-// 🧭 Навигация
 window.navTo = function(page) {
     document.querySelectorAll('.nav-item').forEach(function(item) { item.classList.remove('active'); });
     var navMap = { 'menu': 0, 'premium': 1, 'rating': 2, 'profile': 3 };
@@ -195,7 +177,6 @@ window.navTo = function(page) {
     }
 };
 
-// 📑 Переключение табов
 window.switchTab = function(tab) {
     document.querySelectorAll('.tab-content').forEach(function(t) { t.classList.remove('active'); });
     var tabEl = document.getElementById(tab + 'Tab');
@@ -205,7 +186,6 @@ window.switchTab = function(tab) {
     }
 };
 
-// 💎 Покупка Premium
 window.buyPremiumPlan = function(months, price) {
     if (userBalance < price) {
         tg.showAlert("❌ Недостаточно средств!\n\nПополните баланс.");
@@ -232,8 +212,20 @@ window.buyPremiumPlan = function(months, price) {
 };
 
 // ============================================
+// 🔄 АВТОМАТИЧЕСКОЕ ОБНОВЛЕНИЕ БАЛАНСА (POLLING)
+// ============================================
+
+function startBalancePolling() {
+    console.log('🔄 Запуск автообновления баланса (каждые 3 секунды)...');
+    setInterval(function() {
+        loadUserBalance();
+    }, 3000);
+}
+
+// ============================================
 // 📬 СЛУШАЕМ ОТВЕТЫ ОТ БОТА
 // ============================================
+
 window.addEventListener('message', function(event) {
     console.log('📨 Получено:', event.data);
     if (event.data && typeof event.data === 'string') {
@@ -261,6 +253,7 @@ window.addEventListener('message', function(event) {
 // ============================================
 // 🎯 ИНИЦИАЛИЗАЦИЯ
 // ============================================
+
 document.addEventListener('DOMContentLoaded', function() {
     console.log('🚀 DOM загружен');
     var savedLang = localStorage.getItem('language');
@@ -285,6 +278,11 @@ function initApp() {
     loadRating();
     loadProfile();
     updateBalance();
+    loadUserBalance();
+    
+    // ЗАПУСКАЕМ АВТООБНОВЛЕНИЕ БАЛАНСА
+    startBalancePolling();
+    
     tg.MainButton.setText(translations[currentLang].buyBtn);
     tg.MainButton.onClick(buyStars);
     tg.MainButton.show();
@@ -315,6 +313,14 @@ function updateTexts() {
     var customBtn = document.querySelector('.custom-btn');
     if (customBtn) customBtn.textContent = t.customBtn;
     tg.MainButton.setText(t.buyBtn);
+}
+
+function updatePriceDisplay() {
+    var price = starPrices[selectedStars] || (selectedStars * 200);
+    var priceDisplay = document.getElementById('priceDisplay');
+    if (priceDisplay) {
+        priceDisplay.textContent = price.toLocaleString() + " so'm";
+    }
 }
 
 function updateBalance() {
@@ -516,6 +522,7 @@ function loadProfile() {
     });
 }
 
+
 function addToHistory(type, stars, price, details) {
     userData.history.push({ type: type, stars: stars, price: price, details: details, timestamp: new Date().toISOString() });
     userData.totalSpent += price;
@@ -556,15 +563,16 @@ function displayRequests(requests) {
             'rejected': '❌ Отклонена'
         }[req.status] || req.status;
         var date = new Date(req.created_at).toLocaleString('ru-RU');
-        html += '<div class="request-card">' +
-            '<div class="request-header">' +
-                '<span class="request-id">#' + req.id + '</span>' +
-                '<span class="request-amount">' + req.amount.toLocaleString() + " so'm</span>" +
-            '</div>' +
-            '<div class="request-status ' + statusClass + '">' + statusText + '</div>' +
-            '<div class="request-proof">📄 Чек: ' + req.payment_proof + '</div>' +
-            '<div class="request-date">🕐 ' + date + '</div>' +
-        '</div>';
+        html += 
+            '<div class="request-card">' +
+                '<div class="request-header">' +
+                    '<span class="request-id">#' + req.id + '</span>' +
+                    '<span class="request-amount">' + req.amount.toLocaleString() + " so'm</span>" +
+                '</div>' +
+                '<div class="request-status ' + statusClass + '">' + statusText + '</div>' +
+                '<div class="request-proof">📄 Чек: ' + (req.payment_proof || 'Не загружен') + '</div>' +
+                '<div class="request-date">🕐 ' + date + '</div>' +
+            '</div>';
     });
     requestsList.innerHTML = html;
 }
