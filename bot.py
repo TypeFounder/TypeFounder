@@ -46,20 +46,21 @@ async def is_admin(user_id):
 @dp.message(CommandStart())
 async def cmd_start(message: Message):
     user = get_user(message.from_user.id)
-    # Добавляем баланс в параметры ссылки
-    url_with_params = f"{WEBAPP_URL}?balance={user['balance']}"
+    update_user(message.from_user.id, {'username': message.from_user.username or ''})
     
+    # ✅ Уберите лишние пробелы в URL
+    image_url = "https://images.unsplash.com/photo-1611162617474-5b21e879e113?w=800"
+
     builder = InlineKeyboardBuilder()
-    builder.button(text="⭐ Открыть Uz Give", web_app=WebAppInfo(url=url_with_params))
-    # ... остальной код ...
+    builder.button(text="⭐ Открыть Uz Give", web_app=WebAppInfo(url=f"{WEBAPP_URL}?balance={user['balance']}"))
     builder.button(text="💰 Пополнить баланс", callback_data="topup_balance")
     builder.button(text="💬 Поддержка", callback_data="support")
-    
+
     if message.from_user.id == ADMIN_ID or await is_admin(message.from_user.id):
         builder.button(text="🔧 Админ панель", callback_data="admin_panel")
-    
+
     builder.adjust(1)
-    
+
     await message.answer_photo(
         photo=image_url,
         caption=(

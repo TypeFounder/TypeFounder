@@ -192,7 +192,8 @@ window.buyPremiumPlan = function(months, price) {
         return;
     }
     var monthText = months === 3 ? '3 месяца' : months === 6 ? '6 месяцев' : '12 месяцев';
-
+    userBalance -= price;
+    updateBalance();
     tg.showConfirm(
         '💎 Оформить Telegram Premium на ' + monthText + '?\n\n💰 Стоимость: ' + price.toLocaleString() + " so'm",
         function(confirmed) {
@@ -352,12 +353,15 @@ function buyStars() {
         return;
     }
     addToHistory('stars', selectedStars, price, username);
+    userBalance -= price;
+    updateBalance();
+
+    // 2. Tell the bot to update the DB
     tg.sendData(JSON.stringify({
         type: 'stars',
         stars: selectedStars,
         username: username,
-        price: price,
-        timestamp: new Date().toISOString()
+        price: price
     }));
     setTimeout(function() { loadUserBalance(); }, 1000);
     tg.showAlert("✅ Muvaffaqiyatli!\n\n" + selectedStars + " ⭐\n" + price.toLocaleString() + " so'm");
@@ -464,6 +468,8 @@ function buyGift(gift) {
         return;
     }
     addToHistory('gift', gift.stars, gift.price, gift.name[currentLang]);
+    userBalance -= price;
+    updateBalance();
     tg.sendData(JSON.stringify({
         type: 'gift',
         gift: gift.name[currentLang],
