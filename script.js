@@ -78,35 +78,6 @@ let userData = { history: [], totalSpent: 0, totalPurchases: 0 };
 let paymentDetails = 'Karta: 8600 1234 5678 9012\nTelefon: +998 90 123 45 67';
 
 // ============================================
-// 💾 TELEGRAM CLOUD STORAGE
-// ============================================
-
-// Загрузка баланса из CloudStorage
-function loadBalanceFromCloud() {
-    tg.CloudStorage.getItem('balance', function(err, value) {
-        if (err || !value) {
-            console.log('⚠️ Нет баланса в CloudStorage, запрашиваем у бота');
-            loadUserBalance();
-        } else {
-            userBalance = parseInt(value);
-            updateBalance();
-            console.log('✅ Баланс загружен из CloudStorage:', userBalance);
-        }
-    });
-}
-
-// Сохранение баланса в CloudStorage
-function saveBalanceToCloud(balance) {
-    tg.CloudStorage.setItem('balance', balance.toString(), function(err) {
-        if (err) {
-            console.error('❌ Ошибка сохранения в CloudStorage:', err);
-        } else {
-            console.log('✅ Баланс сохранён в CloudStorage:', balance);
-        }
-    });
-}
-
-// ============================================
 // 🌐 ГЛОБАЛЬНЫЕ ФУНКЦИИ (ОБЯЗАТЕЛЬНО!)
 // ============================================
 
@@ -241,7 +212,6 @@ window.addEventListener('message', function(event) {
             var balance = parseInt(event.data.replace('USER_BALANCE:', ''));
             userBalance = balance;
             updateBalance();
-            saveBalanceToCloud(balance); // Сохраняем в CloudStorage
             console.log('✅ Баланс обновлён:', balance);
         }
         
@@ -277,7 +247,7 @@ document.addEventListener('DOMContentLoaded', function() {
     }
     
     loadData();
-    loadBalanceFromCloud(); // Загружаем из CloudStorage
+    loadUserBalance();
 });
 
 function initApp() {
@@ -509,19 +479,13 @@ function loadProfile() {
     userData.history.slice().reverse().slice(0, 10).forEach(function(item) {
         var div = document.createElement('div');
         div.className = 'history-item';
-       div.innerHTML = `
+        div.innerHTML = `
     <div class="history-header">
-        <div class="history-type">
-            ${item.type === 'stars' ? '⭐ Stars' : '🎁 ' + item.details}
-        </div>
-        <div class="history-amount">
-            ${item.price.toLocaleString()} so'm
-        </div>
+        <div class="history-type">${item.type === 'stars' ? '⭐ Stars' : '🎁 ' + item.details}</div>
+        <div class="history-amount">${item.price.toLocaleString()} so'm</div>
     </div>
     <div class="history-details">${item.stars} ⭐</div>
-    <div class="history-date">
-        ${new Date(item.timestamp).toLocaleString()}
-    </div>
+    <div class="history-date">${new Date(item.timestamp).toLocaleString()}</div>
 `;
         list.appendChild(div);
     });
@@ -576,18 +540,5 @@ function displayRequests(requests) {
     });
     requestsList.innerHTML = html;
 }
-
-// Делаем функции глобальными
-window.selectLanguage = selectLanguage;
-window.toggleLanguage = toggleLanguage;
-window.closeApp = closeApp;
-window.openSupport = openSupport;
-window.setSelf = setSelf;
-window.selectStars = selectStars;
-window.setCustomStars = setCustomStars;
-window.navTo = navTo;
-window.switchTab = switchTab;
-window.buyPremiumPlan = buyPremiumPlan;
-window.refreshBalance = refreshBalance;
 
 tg.ready();
