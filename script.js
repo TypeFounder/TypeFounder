@@ -85,8 +85,13 @@ window.selectLanguage = function(lang) {
     console.log('🌐 Выбор языка:', lang);
     currentLang = lang;
     localStorage.setItem('language', lang);
-    var modal = document.getElementById('languageModal');
+    const modal = document.getElementById('languageModal');
     if (modal) modal.style.display = 'none';
+
+    // Важно: вызываем инициализацию только ПОСЛЕ того, как DOM готов
+    if (document.readyState === 'loading') {
+        document.addEventListener('DOMContentLoaded', initApp);
+        } else {
     initApp();
 };
 
@@ -549,3 +554,4 @@ function displayRequests(requests) {
 }
 
 tg.ready();
+}
