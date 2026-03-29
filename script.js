@@ -577,4 +577,17 @@ function displayRequests(requests) {
     requestsList.innerHTML = html;
 }
 
+// Делаем функции глобальными
+window.selectLanguage = selectLanguage;
+window.toggleLanguage = toggleLanguage;
+window.closeApp = closeApp;
+window.openSupport = openSupport;
+window.setSelf = setSelf;
+window.selectStars = selectStars;
+window.setCustomStars = setCustomStars;
+window.navTo = navTo;
+window.switchTab = switchTab;
+window.buyPremiumPlan = buyPremiumPlan;
+window.refreshBalance = refreshBalance;
+
 tg.ready();
