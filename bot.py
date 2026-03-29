@@ -44,31 +44,22 @@ async def is_admin(user_id):
     return user_id in admins
 
 @dp.message(CommandStart())
-async def cmd_start(message: Message):
-    user = get_user(message.from_user.id)
-    update_user(message.from_user.id, {'username': message.from_user.username or ''})
+async def cmd_start(message: types.Message):
+    user_id = message.from_user.id
+    user = get_user(user_id) # Получаем данные из вашей базы
     
-    image_url = "https://images.unsplash.com/photo-1611162617474-5b21e879e113?w=800"
+    # Добавляем баланс в параметры URL
+    webapp_url_with_params = f"{WEBAPP_URL}?balance={user['balance']}"
     
     builder = InlineKeyboardBuilder()
-    builder.button(text="⭐ Открыть Uz Give", web_app=WebAppInfo(url=WEBAPP_URL))
-    builder.button(text="💰 Пополнить баланс", callback_data="topup_balance")
-    builder.button(text="💬 Поддержка", callback_data="support")
+    builder.row(types.InlineKeyboardButton(
+        text="Открыть магазин 🎁", 
+        web_app=WebAppInfo(url=webapp_url_with_params)
+    ))
     
-    if message.from_user.id == ADMIN_ID or await is_admin(message.from_user.id):
-        builder.button(text="🔧 Админ панель", callback_data="admin_panel")
-    
-    builder.adjust(1)
-    
-    await message.answer_photo(
-        photo=image_url,
-        caption=(
-            f"🎁 <b>Добро пожаловать в Uz Give!</b>\n\n"
-            f"👤 <b>Ваш баланс:</b> {user['balance']:,} so'm\n\n"
-            f"Покупайте Telegram Stars, Premium и подарки."
-        ),
-        reply_markup=builder.as_markup(),
-        parse_mode="HTML"
+    await message.answer(
+        f"Привет, {message.from_user.first_name}!\nТвой баланс: {user['balance']:,} so'm",
+        reply_markup=builder.as_markup()
     )
 
 @dp.callback_query(F.data == "support")

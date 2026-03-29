@@ -1,7 +1,56 @@
+// Используем window, чтобы VS Code понимал, что это глобальная переменная
+window.userBalance = 0;
+
 const tg = window.Telegram.WebApp;
-tg.expand();
-tg.setHeaderColor('#1a1f2e');
-tg.setBackgroundColor('#0f1419');
+
+// Функция инициализации
+function initApp() {
+    tg.expand();
+    tg.setHeaderColor('#1a1f2e');
+    tg.setBackgroundColor('#0f1419');
+
+    // Получаем баланс из URL (безопасный способ)
+    const urlParams = new URLSearchParams(window.location.search);
+    const balanceParam = urlParams.get('balance');
+    
+    if (balanceParam) {
+        window.userBalance = parseInt(balanceParam);
+    }
+    
+    updateUI();
+}
+
+// Функция обновления текста на экране
+function updateUI() {
+    const balanceEl = document.getElementById('balance');
+    if (balanceEl) {
+        balanceEl.textContent = window.userBalance.toLocaleString('ru-RU') + " so'm";
+    }
+    
+    // Если у тебя есть блок профиля, обновляем и там имя
+    const profileTitle = document.getElementById('profileTitle');
+    if (profileTitle) {
+        profileTitle.textContent = tg.initDataUnsafe?.user?.first_name || "Foydalanuvchi";
+    }
+}
+
+// Слушатель загрузки
+window.addEventListener('DOMContentLoaded', initApp);
+
+// Функция для кнопки обновления
+function refreshBalance() {
+    const btn = document.querySelector('.refresh-btn');
+    if (btn) btn.classList.add('rotating');
+    
+    tg.HapticFeedback.impactOccurred('medium');
+
+    // Имитация запроса
+    setTimeout(() => {
+        if (btn) btn.classList.remove('rotating');
+        // В будущем здесь будет fetch запрос к базе
+        updateUI();
+    }, 1000);
+}
 
 const translations = {
     ru: {
