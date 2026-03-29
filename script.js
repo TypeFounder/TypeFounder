@@ -1,4 +1,23 @@
+// Убедись, что это ПЕРВАЯ строка файла
+console.log("Скрипт загружен успешно!");
+
 const tg = window.Telegram.WebApp;
+
+// Выносим функцию ПРЯМО В ГЛОБАЛЬНУЮ ОБЛАСТЬ
+window.selectLanguage = function(lang) {
+    console.log('Нажат выбор языка:', lang);
+    currentLang = lang;
+    localStorage.setItem('language', lang);
+    const modal = document.getElementById('languageModal');
+    if (modal) modal.style.display = 'none';
+    
+    // Вызываем инициализацию, если она определена ниже
+    if (typeof initApp === 'function') {
+        initApp();
+    }
+};
+
+// Остальной твой код (translations, starPrices и т.д.) ...
 tg.expand();
 tg.setHeaderColor('#1a1f2e');
 tg.setBackgroundColor('#0f1419');
