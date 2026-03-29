@@ -1,56 +1,7 @@
-// Используем window, чтобы VS Code понимал, что это глобальная переменная
-window.userBalance = 0;
-
 const tg = window.Telegram.WebApp;
-
-// Функция инициализации
-function initApp() {
-    tg.expand();
-    tg.setHeaderColor('#1a1f2e');
-    tg.setBackgroundColor('#0f1419');
-
-    // Получаем баланс из URL (безопасный способ)
-    const urlParams = new URLSearchParams(window.location.search);
-    const balanceParam = urlParams.get('balance');
-    
-    if (balanceParam) {
-        window.userBalance = parseInt(balanceParam);
-    }
-    
-    updateUI();
-}
-
-// Функция обновления текста на экране
-function updateUI() {
-    const balanceEl = document.getElementById('balance');
-    if (balanceEl) {
-        balanceEl.textContent = window.userBalance.toLocaleString('ru-RU') + " so'm";
-    }
-    
-    // Если у тебя есть блок профиля, обновляем и там имя
-    const profileTitle = document.getElementById('profileTitle');
-    if (profileTitle) {
-        profileTitle.textContent = tg.initDataUnsafe?.user?.first_name || "Foydalanuvchi";
-    }
-}
-
-// Слушатель загрузки
-window.addEventListener('DOMContentLoaded', initApp);
-
-// Функция для кнопки обновления
-function refreshBalance() {
-    const btn = document.querySelector('.refresh-btn');
-    if (btn) btn.classList.add('rotating');
-    
-    tg.HapticFeedback.impactOccurred('medium');
-
-    // Имитация запроса
-    setTimeout(() => {
-        if (btn) btn.classList.remove('rotating');
-        // В будущем здесь будет fetch запрос к базе
-        updateUI();
-    }, 1000);
-}
+tg.expand();
+tg.setHeaderColor('#1a1f2e');
+tg.setBackgroundColor('#0f1419');
 
 const translations = {
     ru: {
@@ -127,6 +78,35 @@ let userData = { history: [], totalSpent: 0, totalPurchases: 0 };
 let paymentDetails = 'Karta: 8600 1234 5678 9012\nTelefon: +998 90 123 45 67';
 
 // ============================================
+// 💾 TELEGRAM CLOUD STORAGE
+// ============================================
+
+// Загрузка баланса из CloudStorage
+function loadBalanceFromCloud() {
+    tg.CloudStorage.getItem('balance', function(err, value) {
+        if (err || !value) {
+            console.log('⚠️ Нет баланса в CloudStorage, запрашиваем у бота');
+            loadUserBalance();
+        } else {
+            userBalance = parseInt(value);
+            updateBalance();
+            console.log('✅ Баланс загружен из CloudStorage:', userBalance);
+        }
+    });
+}
+
+// Сохранение баланса в CloudStorage
+function saveBalanceToCloud(balance) {
+    tg.CloudStorage.setItem('balance', balance.toString(), function(err) {
+        if (err) {
+            console.error('❌ Ошибка сохранения в CloudStorage:', err);
+        } else {
+            console.log('✅ Баланс сохранён в CloudStorage:', balance);
+        }
+    });
+}
+
+// ============================================
 // 🌐 ГЛОБАЛЬНЫЕ ФУНКЦИИ (ОБЯЗАТЕЛЬНО!)
 // ============================================
 
@@ -134,7 +114,7 @@ window.selectLanguage = function(lang) {
     console.log('🌐 Выбор языка:', lang);
     currentLang = lang;
     localStorage.setItem('language', lang);
-    const modal = document.getElementById('languageModal');
+    var modal = document.getElementById('languageModal');
     if (modal) modal.style.display = 'none';
     initApp();
 };
@@ -142,7 +122,7 @@ window.selectLanguage = function(lang) {
 window.toggleLanguage = function() {
     currentLang = currentLang === 'uz' ? 'ru' : 'uz';
     localStorage.setItem('language', currentLang);
-    const btn = document.getElementById('currentLangText');
+    var btn = document.getElementById('currentLangText');
     if (btn) btn.textContent = translations[currentLang].lang;
     initApp();
 };
@@ -150,7 +130,7 @@ window.toggleLanguage = function() {
 window.refreshBalance = function() {
     console.log('🔄 Обновление...');
     loadUserBalance();
-    const btn = document.querySelector('.refresh-btn');
+    var btn = document.querySelector('.refresh-btn');
     if (btn) {
         btn.style.transform = 'rotate(360deg)';
         setTimeout(function() { btn.style.transform = 'rotate(0deg)'; }, 500);
@@ -166,7 +146,7 @@ window.openSupport = function() {
 };
 
 window.setSelf = function() {
-    const user = tg.initDataUnsafe.user;
+    var user = tg.initDataUnsafe.user;
     if (user) {
         document.getElementById('username').value = user.username || user.first_name;
     }
@@ -183,11 +163,11 @@ window.selectStars = function(amount) {
 };
 
 window.setCustomStars = function() {
-    const custom = parseInt(document.getElementById('customStars').value);
+    var custom = parseInt(document.getElementById('customStars').value);
     if (custom && custom > 0) {
         selectedStars = custom;
         document.getElementById('starsAmount').value = custom;
-        const price = custom * 200;
+        var price = custom * 200;
         document.getElementById('priceDisplay').textContent = price.toLocaleString() + " so'm";
         document.querySelectorAll('.quick-btn').forEach(function(btn) {
             btn.classList.remove('active');
@@ -198,10 +178,10 @@ window.setCustomStars = function() {
 
 window.navTo = function(page) {
     document.querySelectorAll('.nav-item').forEach(function(item) { item.classList.remove('active'); });
-    const navMap = { 'menu': 0, 'premium': 1, 'rating': 2, 'profile': 3 };
-    const index = navMap[page];
+    var navMap = { 'menu': 0, 'premium': 1, 'rating': 2, 'profile': 3 };
+    var index = navMap[page];
     if (index !== undefined) {
-        const navItems = document.querySelectorAll('.nav-item');
+        var navItems = document.querySelectorAll('.nav-item');
         if (navItems[index]) navItems[index].classList.add('active');
     }
     if (page === 'menu') {
@@ -217,7 +197,7 @@ window.navTo = function(page) {
 
 window.switchTab = function(tab) {
     document.querySelectorAll('.tab-content').forEach(function(t) { t.classList.remove('active'); });
-    const tabEl = document.getElementById(tab + 'Tab');
+    var tabEl = document.getElementById(tab + 'Tab');
     if (tabEl) tabEl.classList.add('active');
     if (tab === 'requests') {
         loadUserRequests();
@@ -230,7 +210,7 @@ window.buyPremiumPlan = function(months, price) {
         return;
     }
     
-    const monthText = months === 3 ? '3 месяца' : months === 6 ? '6 месяцев' : '12 месяцев';
+    var monthText = months === 3 ? '3 месяца' : months === 6 ? '6 месяцев' : '12 месяцев';
     
     tg.showConfirm(
         '💎 Оформить Telegram Premium на ' + monthText + '?\n\n💰 Стоимость: ' + price.toLocaleString() + " so'm",
@@ -258,21 +238,22 @@ window.addEventListener('message', function(event) {
     
     if (event.data && typeof event.data === 'string') {
         if (event.data.startsWith('USER_BALANCE:')) {
-            const balance = parseInt(event.data.replace('USER_BALANCE:', ''));
+            var balance = parseInt(event.data.replace('USER_BALANCE:', ''));
             userBalance = balance;
             updateBalance();
+            saveBalanceToCloud(balance); // Сохраняем в CloudStorage
             console.log('✅ Баланс обновлён:', balance);
         }
         
         if (event.data.startsWith('PAYMENT_DETAILS:')) {
-            const details = event.data.replace('PAYMENT_DETAILS:', '');
+            var details = event.data.replace('PAYMENT_DETAILS:', '');
             paymentDetails = details;
-            const detailsEl = document.getElementById('paymentDetailsDisplay');
+            var detailsEl = document.getElementById('paymentDetailsDisplay');
             if (detailsEl) detailsEl.textContent = details;
         }
         
         if (event.data.startsWith('USER_REQUESTS:')) {
-            const requestsData = JSON.parse(event.data.replace('USER_REQUESTS:', ''));
+            var requestsData = JSON.parse(event.data.replace('USER_REQUESTS:', ''));
             displayRequests(requestsData);
         }
     }
@@ -284,19 +265,19 @@ window.addEventListener('message', function(event) {
 document.addEventListener('DOMContentLoaded', function() {
     console.log('🚀 DOM загружен');
     
-    const savedLang = localStorage.getItem('language');
+    var savedLang = localStorage.getItem('language');
     if (savedLang) {
         currentLang = savedLang;
-        const modal = document.getElementById('languageModal');
+        var modal = document.getElementById('languageModal');
         if (modal) modal.style.display = 'none';
         initApp();
     } else {
-        const modal = document.getElementById('languageModal');
+        var modal = document.getElementById('languageModal');
         if (modal) modal.style.display = 'flex';
     }
     
     loadData();
-    loadUserBalance();
+    loadBalanceFromCloud(); // Загружаем из CloudStorage
 });
 
 function initApp() {
@@ -312,8 +293,8 @@ function initApp() {
 }
 
 function updateTexts() {
-    const t = translations[currentLang];
-    const textElements = {
+    var t = translations[currentLang];
+    var textElements = {
         'starsTitle': t.starsTitle,
         'recipientLabel': t.recipientLabel,
         'amountLabel': t.amountLabel,
@@ -321,23 +302,25 @@ function updateTexts() {
         'ratingTitle': t.ratingTitle,
         'profileTitle': t.profileTitle
     };
-    for (const [id, text] of Object.entries(textElements)) {
-        const el = document.getElementById(id);
+    for (var i = 0; i < Object.keys(textElements).length; i++) {
+        var id = Object.keys(textElements)[i];
+        var text = textElements[id];
+        var el = document.getElementById(id);
         if (el) el.textContent = text;
     }
-    const usernameInput = document.getElementById('username');
+    var usernameInput = document.getElementById('username');
     if (usernameInput) usernameInput.placeholder = t.usernamePlaceholder;
-    const selfBtn = document.getElementById('selfBtn');
+    var selfBtn = document.getElementById('selfBtn');
     if (selfBtn) selfBtn.textContent = t.selfBtn;
-    const customInput = document.getElementById('customStars');
+    var customInput = document.getElementById('customStars');
     if (customInput) customInput.placeholder = t.customPlaceholder;
-    const customBtn = document.querySelector('.custom-btn');
+    var customBtn = document.querySelector('.custom-btn');
     if (customBtn) customBtn.textContent = t.customBtn;
     tg.MainButton.setText(t.buyBtn);
 }
 
 function updateBalance() {
-    const balanceEl = document.getElementById('balance');
+    var balanceEl = document.getElementById('balance');
     if (balanceEl) {
         balanceEl.textContent = userBalance.toLocaleString() + " so'm";
     }
@@ -352,12 +335,12 @@ function loadUserBalance() {
 }
 
 function buyStars() {
-    const username = document.getElementById('username').value.trim();
+    var username = document.getElementById('username').value.trim();
     if (!username) {
         tg.showAlert("Username kiriting!");
         return;
     }
-    const price = starPrices[selectedStars] || (selectedStars * 200);
+    var price = starPrices[selectedStars] || (selectedStars * 200);
     if (userBalance < price) {
         tg.showAlert(translations[currentLang].insufficientBalance);
         return;
@@ -375,74 +358,70 @@ function buyStars() {
 }
 
 function showTopupModal(amount) {
-    const t = translations[currentLang];
-    const modal = document.createElement('div');
+    var t = translations[currentLang];
+    var modal = document.createElement('div');
     modal.className = 'modal';
     modal.style.display = 'flex';
     
-    modal.innerHTML = `
-        <div class="modal-content" style="max-width: 90%; width: 450px;">
-            <h2 style="margin-bottom: 25px;">${t.topupTitle}</h2>
-            <div style="margin-bottom: 20px;">
-                <label style="display: block; margin-bottom: 8px; color: #8b92a8; font-size: 14px;">${t.topupAmount}:</label>
-                <input type="number" id="topupAmountInput" value="${amount || 10000}" style="width: 100%; padding: 12px; background: rgba(30, 39, 54, 0.8); border: 2px solid #2d3a4f; border-radius: 8px; color: #fff; font-size: 18px; font-weight: 600;">
-            </div>
-            <div style="background: rgba(30, 39, 54, 0.8); padding: 20px; border-radius: 12px; margin-bottom: 20px;">
-                <p style="margin-bottom: 10px; color: #8b92a8; font-size: 14px;">Реквизиты для оплаты:</p>
-                <div id="paymentDetailsDisplay" style="background: #0f1419; padding: 15px; border-radius: 8px; font-family: monospace; white-space: pre-wrap; font-size: 14px; line-height: 1.6; min-height: 80px;">${paymentDetails}</div>
-            </div>
-            <div style="display: flex; gap: 10px;">
-                <button class="lang-btn" onclick="this.closest('.modal').remove()" style="background: #2d3a4f; flex: 1;">${t.cancel}</button>
-                <button class="lang-btn" onclick="proceedToPaymentProof()" style="flex: 1;">Продолжить</button>
-            </div>
-        </div>
-    `;
+    modal.innerHTML = '<div class="modal-content" style="max-width: 90%; width: 450px;">' +
+        '<h2 style="margin-bottom: 25px;">' + t.topupTitle + '</h2>' +
+        '<div style="margin-bottom: 20px;">' +
+        '<label style="display: block; margin-bottom: 8px; color: #8b92a8; font-size: 14px;">' + t.topupAmount + ':</label>' +
+        '<input type="number" id="topupAmountInput" value="' + (amount || 10000) + '" style="width: 100%; padding: 12px; background: rgba(30, 39, 54, 0.8); border: 2px solid #2d3a4f; border-radius: 8px; color: #fff; font-size: 18px; font-weight: 600;">' +
+        '</div>' +
+        '<div style="background: rgba(30, 39, 54, 0.8); padding: 20px; border-radius: 12px; margin-bottom: 20px;">' +
+        '<p style="margin-bottom: 10px; color: #8b92a8; font-size: 14px;">Реквизиты для оплаты:</p>' +
+        '<div id="paymentDetailsDisplay" style="background: #0f1419; padding: 15px; border-radius: 8px; font-family: monospace; white-space: pre-wrap; font-size: 14px; line-height: 1.6; min-height: 80px;">' + paymentDetails + '</div>' +
+        '</div>' +
+        '<div style="display: flex; gap: 10px;">' +
+        '<button class="lang-btn" onclick="this.closest(\'.modal\').remove()" style="background: #2d3a4f; flex: 1;">' + t.cancel + '</button>' +
+        '<button class="lang-btn" onclick="proceedToPaymentProof()" style="flex: 1;">Продолжить</button>' +
+        '</div>' +
+        '</div>';
     
     document.body.appendChild(modal);
     tg.sendData(JSON.stringify({ type: 'get_payment_details', timestamp: new Date().toISOString() }));
 }
 
 function proceedToPaymentProof() {
-    const amount = parseInt(document.getElementById('topupAmountInput').value) || 10000;
-    const modal = document.querySelector('.modal');
+    var amount = parseInt(document.getElementById('topupAmountInput').value) || 10000;
+    var modal = document.querySelector('.modal');
     if (modal) modal.remove();
     showPaymentProofModal(amount);
 }
 
 function showPaymentProofModal(amount) {
-    const t = translations[currentLang];
-    const user = tg.initDataUnsafe.user;
-    const modal = document.createElement('div');
+    var t = translations[currentLang];
+    var user = tg.initDataUnsafe.user;
+    var modal = document.createElement('div');
     modal.className = 'modal';
     modal.style.display = 'flex';
     
-    modal.innerHTML = `
-        <div class="modal-content" style="max-width: 90%; width: 450px;">
-            <h2 style="margin-bottom: 25px;">Подтверждение оплаты</h2>
-            <div style="background: rgba(91, 155, 213, 0.2); padding: 15px; border-radius: 12px; margin-bottom: 20px; border: 1px solid #5b9bd5;">
-                <p style="color: #5b9bd5; font-size: 18px; font-weight: 700; text-align: center;">Сумма: ${amount.toLocaleString()} so'm</p>
-            </div>
-            <div style="margin-bottom: 15px;">
-                <label style="display: block; margin-bottom: 8px; color: #8b92a8; font-size: 14px;">Ваш username:</label>
-                <input type="text" id="topupUsername" value="${user?.username || ''}" style="width: 100%; padding: 12px; background: rgba(30, 39, 54, 0.8); border: 2px solid #2d3a4f; border-radius: 8px; color: #fff; font-size: 16px;">
-            </div>
-            <div style="margin-bottom: 20px;">
-                <label style="display: block; margin-bottom: 8px; color: #8b92a8; font-size: 14px;">Чек/скриншот оплаты:</label>
-                <input type="text" id="topupProof" style="width: 100%; padding: 12px; background: rgba(30, 39, 54, 0.8); border: 2px solid #2d3a4f; border-radius: 8px; color: #fff; font-size: 16px;" placeholder="Например: TX123456">
-            </div>
-            <div style="display: flex; gap: 10px;">
-                <button class="lang-btn" onclick="this.closest('.modal').remove()" style="background: #2d3a4f; flex: 1;">${t.cancel}</button>
-                <button class="lang-btn" onclick="submitTopupRequest(${amount})" style="flex: 1; background: #5b9bd5;">${t.sent}</button>
-            </div>
-        </div>
-    `;
+    modal.innerHTML = '<div class="modal-content" style="max-width: 90%; width: 450px;">' +
+        '<h2 style="margin-bottom: 25px;">Подтверждение оплаты</h2>' +
+        '<div style="background: rgba(91, 155, 213, 0.2); padding: 15px; border-radius: 12px; margin-bottom: 20px; border: 1px solid #5b9bd5;">' +
+        '<p style="color: #5b9bd5; font-size: 18px; font-weight: 700; text-align: center;">Сумма: ' + amount.toLocaleString() + " so'm</p>" +
+        '</div>' +
+        '<div style="margin-bottom: 15px;">' +
+        '<label style="display: block; margin-bottom: 8px; color: #8b92a8; font-size: 14px;">Ваш username:</label>' +
+        '<input type="text" id="topupUsername" value="' + (user.username || '') + '" style="width: 100%; padding: 12px; background: rgba(30, 39, 54, 0.8); border: 2px solid #2d3a4f; border-radius: 8px; color: #fff; font-size: 16px;">' +
+        '</div>' +
+        '<div style="margin-bottom: 20px;">' +
+        '<label style="display: block; margin-bottom: 8px; color: #8b92a8; font-size: 14px;">Чек/скриншот оплаты:</label>' +
+        '<input type="text" id="topupProof" style="width: 100%; padding: 12px; background: rgba(30, 39, 54, 0.8); border: 2px solid #2d3a4f; border-radius: 8px; color: #fff; font-size: 16px;" placeholder="Например: TX123456">' +
+        '</div>' +
+        '<div style="display: flex; gap: 10px;">' +
+        '<button class="lang-btn" onclick="this.closest(\'.modal\').remove()" style="background: #2d3a4f; flex: 1;">' + t.cancel + '</button>' +
+        '<button class="lang-btn" onclick="submitTopupRequest(' + amount + ')" style="flex: 1; background: #5b9bd5;">' + t.sent + '</button>' +
+        '</div>' +
+        '</div>';
     
     document.body.appendChild(modal);
 }
 
 function submitTopupRequest(amount) {
-    const username = document.getElementById('topupUsername').value.trim() || 'Не указан';
-    const proof = document.getElementById('topupProof').value.trim() || 'Не предоставлен';
+    var username = document.getElementById('topupUsername').value.trim() || 'Не указан';
+    var proof = document.getElementById('topupProof').value.trim() || 'Не предоставлен';
     if (!username || username === '@') {
         tg.showAlert('Введите username!');
         return;
@@ -454,24 +433,22 @@ function submitTopupRequest(amount) {
         proof: proof,
         timestamp: new Date().toISOString()
     }));
-    const modal = document.querySelector('.modal');
+    var modal = document.querySelector('.modal');
     if (modal) modal.remove();
     tg.showAlert('✅ Заявка отправлена!\n\nОжидайте подтверждения админа.');
 }
 
 function loadGifts() {
-    const grid = document.getElementById('giftsGrid');
+    var grid = document.getElementById('giftsGrid');
     if (!grid) return;
     grid.innerHTML = '';
     gifts.forEach(function(gift) {
-        const card = document.createElement('div');
+        var card = document.createElement('div');
         card.className = 'gift-card';
-        card.innerHTML = `
-            <div class="gift-emoji">${gift.emoji}</div>
-            <div class="gift-name">${gift.name[currentLang]}</div>
-            <div class="gift-stars">${gift.stars} ⭐</div>
-            <div class="gift-price">${gift.price.toLocaleString()} so'm</div>
-        `;
+        card.innerHTML = '<div class="gift-emoji">' + gift.emoji + '</div>' +
+            '<div class="gift-name">' + gift.name[currentLang] + '</div>' +
+            '<div class="gift-stars">' + gift.stars + ' ⭐</div>' +
+            '<div class="gift-price">' + gift.price.toLocaleString() + " so'm</div>";
         card.onclick = function() { buyGift(gift); };
         grid.appendChild(card);
     });
@@ -495,53 +472,57 @@ function buyGift(gift) {
 }
 
 function loadRating() {
-    const list = document.getElementById('ratingList');
+    var list = document.getElementById('ratingList');
     if (!list) return;
-    const rating = [
+    var rating = [
         { name: 'Ali', spent: 250000, purchases: 15 },
         { name: 'Vali', spent: 180000, purchases: 10 },
         { name: 'Sardor', spent: 120000, purchases: 8 }
     ];
     list.innerHTML = '';
     rating.forEach(function(user, i) {
-        const item = document.createElement('div');
+        var item = document.createElement('div');
         item.className = 'rating-item';
-        item.innerHTML = `
-            <div class="rating-position">#${i + 1}</div>
-            <div class="rating-avatar">${user.name[0]}</div>
-            <div class="rating-info">
-                <div class="rating-name">${user.name}</div>
-                <div class="rating-stats">${user.purchases} xarid</div>
-            </div>
-            <div class="rating-value">${user.spent.toLocaleString()} so'm</div>
-        `;
+        item.innerHTML = '<div class="rating-position">#' + (i + 1) + '</div>' +
+            '<div class="rating-avatar">' + user.name[0] + '</div>' +
+            '<div class="rating-info">' +
+            '<div class="rating-name">' + user.name + '</div>' +
+            '<div class="rating-stats">' + user.purchases + ' xarid</div>' +
+            '</div>' +
+            '<div class="rating-value">' + user.spent.toLocaleString() + " so'm</div>";
         list.appendChild(item);
     });
 }
 
 function loadProfile() {
-    const totalSpentEl = document.getElementById('totalSpentValue');
-    const totalPurchasesEl = document.getElementById('totalPurchasesValue');
+    var totalSpentEl = document.getElementById('totalSpentValue');
+    var totalPurchasesEl = document.getElementById('totalPurchasesValue');
     if (totalSpentEl) totalSpentEl.textContent = userData.totalSpent.toLocaleString() + " so'm";
     if (totalPurchasesEl) totalPurchasesEl.textContent = userData.totalPurchases;
-    const list = document.getElementById('historyList');
+    var list = document.getElementById('historyList');
     if (!list) return;
     if (userData.history.length === 0) {
-        list.innerHTML = `<div style="text-align:center;padding:40px;color:#8b92a8">${translations[currentLang].noHistory}</div>`;
+        list.innerHTML = '<div style="text-align:center;padding:40px;color:#8b92a8">' + translations[currentLang].noHistory + '</div>';
         return;
     }
     list.innerHTML = '';
     userData.history.slice().reverse().slice(0, 10).forEach(function(item) {
-        const div = document.createElement('div');
+        var div = document.createElement('div');
         div.className = 'history-item';
-        div.innerHTML = `
-            <div class="history-header">
-                <div class="history-type">${item.type === 'stars' ? '⭐ Stars' : '🎁 ' + item.details}</div>
-                <div class="history-amount">${item.price.toLocaleString()} so'm</div>
-            </div>
-            <div class="history-details">${item.stars} ⭐</div>
-            <div class="history-date">${new Date(item.timestamp).toLocaleString()}</div>
-        `;
+       div.innerHTML = `
+    <div class="history-header">
+        <div class="history-type">
+            ${item.type === 'stars' ? '⭐ Stars' : '🎁 ' + item.details}
+        </div>
+        <div class="history-amount">
+            ${item.price.toLocaleString()} so'm
+        </div>
+    </div>
+    <div class="history-details">${item.stars} ⭐</div>
+    <div class="history-date">
+        ${new Date(item.timestamp).toLocaleString()}
+    </div>
+`;
         list.appendChild(div);
     });
 }
@@ -559,7 +540,7 @@ function saveData() {
 }
 
 function loadData() {
-    const saved = localStorage.getItem('userData');
+    var saved = localStorage.getItem('userData');
     if (saved) userData = JSON.parse(saved);
 }
 
@@ -571,43 +552,29 @@ function loadUserRequests() {
 }
 
 function displayRequests(requests) {
-    const requestsList = document.getElementById('requestsList');
+    var requestsList = document.getElementById('requestsList');
     if (!requests || requests.length === 0) {
-        requestsList.innerHTML = `
-            <div style="text-align: center; padding: 40px; color: #8b92a8;">
-                <div style="font-size: 48px; margin-bottom: 16px;">📭</div>
-                <div>Нет заявок</div>
-            </div>
-        `;
+        requestsList.innerHTML = '<div style="text-align: center; padding: 40px; color: #8b92a8;"><div style="font-size: 48px; margin-bottom: 16px;">📭</div><div>Нет заявок</div></div>';
         return;
     }
     requests.reverse();
-    let html = '';
+    var html = '';
     requests.forEach(function(req) {
-        const statusClass = req.status;
-        const statusText = {
+        var statusClass = req.status;
+        var statusText = {
             'pending': '⏳ Ожидает',
             'approved': '✅ Одобрена',
             'rejected': '❌ Отклонена'
         }[req.status] || req.status;
-        const date = new Date(req.created_at).toLocaleString('ru-RU');
-        html += `
-            <div class="request-card">
-                <div class="request-header">
-                    <span class="request-id">#${req.id}</span>
-                    <span class="request-amount">${req.amount.toLocaleString()} so'm</span>
-                </div>
-                <div class="request-status ${statusClass}">${statusText}</div>
-                <div class="request-proof">📄 Чек: ${req.payment_proof || 'Не загружен'}</div>
-                <div class="request-date">🕐 ${date}</div>
-            </div>
-        `;
+        var date = new Date(req.created_at).toLocaleString('ru-RU');
+        html += '<div class="request-card">' +
+            '<div class="request-header"><span class="request-id">#' + req.id + '</span><span class="request-amount">' + req.amount.toLocaleString() + " so'm</span></div>" +
+            '<div class="request-status ' + statusClass + '">' + statusText + '</div>' +
+            '<div class="request-proof">📄 Чек: ' + (req.payment_proof || 'Не загружен') + '</div>' +
+            '<div class="request-date">🕐 ' + date + '</div>' +
+            '</div>';
     });
     requestsList.innerHTML = html;
-}
-
-function uploadProof(requestId) {
-    tg.showAlert('📸 Загрузка чека\n\nОтправьте фото/скриншот чека боту в личные сообщения.\n\nЧек будет автоматически привязан к заявке #' + requestId);
 }
 
 tg.ready();
