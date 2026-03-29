@@ -531,12 +531,19 @@ function displayRequests(requests) {
             'rejected': '❌ Отклонена'
         }[req.status] || req.status;
         var date = new Date(req.created_at).toLocaleString('ru-RU');
-        html += '<div class="request-card">' +
-            '<div class="request-header"><span class="request-id">#' + req.id + '</span><span class="request-amount">' + req.amount.toLocaleString() + " so'm</span></div>" +
-            '<div class="request-status ' + statusClass + '">' + statusText + '</div>' +
-            '<div class="request-proof">📄 Чек: ' + (req.payment_proof || 'Не загружен') + '</div>' +
-            '<div class="request-date">🕐 ' + date + '</div>' +
-            '</div>';
+
+        // ЗАМЕНИ СВОЙ html += НА ЭТОТ БЛОК:
+        html += `
+            <div class="request-card">
+                <div class="request-header">
+                    <span class="request-id">#${req.id}</span>
+                    <span class="request-amount">${req.amount.toLocaleString()} so'm</span>
+                </div>
+                <div class="request-status ${statusClass}">${statusText}</div>
+                <div class="request-proof">📄 Чек: ${req.payment_proof || 'Не загружен'}</div>
+                <div class="request-date">🕐 ${date}</div>
+            </div>
+        `;
     });
     requestsList.innerHTML = html;
 }
